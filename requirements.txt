@@ -1,0 +1,10 @@
+django
+dataclasses
+requests
+gunicorn
+pymongo
+dnspython
+django-cors-headers
+pyjwt
+fbdown
+TikTokApi
