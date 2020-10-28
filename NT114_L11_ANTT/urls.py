@@ -15,10 +15,7 @@ Including another URLconf
 """
 # from django.contrib import admin
 from django.urls import path, include
-from get_media.service.crawler import like_pic
 
 urlpatterns = [
-    path('download/', include('get_media.controller.crawler')),
-    path('user/', include('get_media.controller.user')),
-    path('like', like_pic)
+    path('', include('get_media.controller.test')),
 ]

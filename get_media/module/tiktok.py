@@ -51,8 +51,12 @@ class TikTok:
         if self.__validate():
             self.__get_video_id()
             response = requests.get(self.__url, cookies=self.__cookies, headers=self.HEADERS)
+            user = self.__api.getTikTokByUrl(self.__url)['itemInfo']['itemStruct']['author']
+            user = dict(username=user['nickname'],
+                        avatar=user['avatarMedium'])
             return dict(url=response.text.split('"playAddr":"')[1].split('"')[0].replace(r'\u0026', '&'),
-                        headers=self.__headers)
+                        headers=self.__headers,
+                        user=user)
         return None
 
 

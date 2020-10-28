@@ -1,5 +1,5 @@
 from django.apps import AppConfig
 
 
-class InstaDownConfig(AppConfig):
+class GetMediaConfig(AppConfig):
     name = 'get_media'
