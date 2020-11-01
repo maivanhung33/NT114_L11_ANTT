@@ -1,3 +1,4 @@
+djangorestframework
 django
 dataclasses
 requests

@@ -60,5 +60,5 @@ class TikTok:
         return None
 
 
-tiktok = TikTok("https://www.tiktok.com/@khang0924046415/video/6888171864833789186")
-print(tiktok.get_link())
+# tiktok = TikTok("https://www.tiktok.com/@khang0924046415/video/6888171864833789186")
+# print(tiktok.get_link())

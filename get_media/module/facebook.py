@@ -24,6 +24,6 @@ class FaceBook:
         return None
 
 
-_url = 'https://fb.watch/1oIoNues8H/'
-fb = FaceBook(_url)
-print(fb.get_link())
+# _url = 'https://fb.watch/1oIoNues8H/'
+# fb = FaceBook(_url)
+# print(fb.get_link())

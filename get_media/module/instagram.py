@@ -88,5 +88,5 @@ class InstaAPI:
         return None
 
 
-insta = InstaAPI('https://www.instagram.com/')
-print(insta.get())
+# insta = InstaAPI('https://www.instagram.com/')
+# print(insta.get())
