@@ -14,9 +14,9 @@ def database() -> MongoClient:
 
     password = os.environ.get('MONGO_PASSWORD') or 'p4ssw0rd'
 
-    db = os.environ.get('MONGO_DB') or 'mongo'
+    db = os.environ.get('MONGO_DB') or 'do_an_lap_chuyen_nganh'
 
-    auth_source = os.environ.get('MONGO_AUTH_SOURCE') or db
+    auth_source = os.environ.get('MONGO_AUTH_SOURCE') or 'mongo'
 
     auth_mechanism = os.environ.get('MONGO_AUTH_MECHANISM') or 'SCRAM-SHA-256'
 

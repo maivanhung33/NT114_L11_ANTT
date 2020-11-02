@@ -2,62 +2,47 @@ import json
 
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
+
 from get_media.module.facebook import FaceBook
 from get_media.module.instagram import InstaAPI
 from get_media.module.tiktok import TikTok
 
 
 @api_view(['POST'])
-def getVideoFacebook(request):
+def get_video_facebook(request):
     data: dict = json.loads(request.body.decode('utf-8'))
     if 'url' not in data.keys():
         return JsonResponse(data={'message': 'URL_REQUIRED'}, status=400)
     try:
         facebook = FaceBook(data['url'])
         return JsonResponse(status=200, data={"url": facebook.get_link()})
-    except:
+    except Exception as e:
+        print(e)
         return JsonResponse(status=200, data=dict(url=None))
 
 
 @api_view(['POST'])
-def getVideoTiktok(request):
+def get_video_tiktok(request):
     data: dict = json.loads(request.body.decode('utf-8'))
     if 'url' not in data.keys():
         return JsonResponse(data={'message': 'URL_REQUIRED'}, status=400)
     try:
         tiktok = TikTok(data['url'])
         return JsonResponse(status=200, data=tiktok.get_link())
-    except:
+    except Exception as e:
+        print(e)
         return JsonResponse(status=200, data=dict(url=None, headers=None, user=None))
 
 
 @api_view(['POST'])
-def getInstaMedia(request):
+def get_insta_media(request):
     data: dict = json.loads(request.body.decode('utf-8'))
     if 'url' not in data.keys():
         return JsonResponse(data={'message': 'URL_REQUIRED'}, status=400)
-    print(data['url'])
     insta = InstaAPI(data['url'])
     info = insta.get()
-    print(insta.get())
     if 'data' not in info.keys():
-        owner: dict = {
-            "avatar": None,
-            "username": None,
-            "fullname": None,
-            "countPost": None,
-            "countFollowedBy": None
-        }
-        posts: list = [{
-            "shortcode": None,
-            "url": None,
-            "isVideo": None,
-            "width": None,
-            "height": None,
-            "countComment": None,
-            "countLike": None
-        }]
-        return JsonResponse(status=200, data=dict(owner=owner, data=posts))
+        return JsonResponse(status=200, data=dict(owner=None, data=None))
     if info['user'] is not None:
         owner: dict = {
             "avatar": info['user']['profile_pic_url_hd'],

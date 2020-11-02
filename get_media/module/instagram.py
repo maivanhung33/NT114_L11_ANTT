@@ -38,15 +38,12 @@ class InstaAPI:
             return False
         domain = elements[2]
         if domain == 'www.instagram.com':
-            print(len(elements))
             if elements[3] == 'p' and len(elements) > 4:
-                print('POST ' + elements[4])
                 self.__type = 'POST'
                 self.__shortcode = elements[4]
                 self.__url = self.BASE_URL + 'p/' + self.__shortcode
                 return True
             elif elements[3] != 'p' and len(elements) > 3:
-                print('PROFILE ' + elements[3])
                 self.__type = 'PROFILE'
                 self.__username = elements[3]
                 self.__url = self.BASE_URL + elements[3]

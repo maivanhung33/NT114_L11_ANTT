@@ -18,5 +18,7 @@ from django.urls import path, include
 
 urlpatterns = [
     # path('', include('get_media.controller.test')),
-    path('', include('get_media.controller.media')),
+    path('download/', include('get_media.controller.media')),
+    path('', include('get_media.controller.user')),
+
 ]

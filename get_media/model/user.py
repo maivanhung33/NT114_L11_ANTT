@@ -1,6 +1,5 @@
-from typing import List
-
 from dataclasses import dataclass
+from typing import List
 
 from get_media.model.source import Source
 
@@ -16,10 +15,10 @@ class FavoriteItem:
 class User:
     username: str
     password: str
-    lastName: str
-    firstName: str
+    lastname: str
+    firstname: str
     birthday: int
-    phone: str
-    email: str
-    avatar: str
     favorites: List[FavoriteItem]
+    avatar: str = None
+    phone: str = None
+    email: str = None
