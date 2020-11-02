@@ -7,5 +7,4 @@ pymongo
 dnspython
 django-cors-headers
 pyjwt
-fb-down
 TikTokApi

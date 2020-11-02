@@ -8,7 +8,7 @@ from rest_framework.decorators import api_view
 from get_media.model.user import User
 from get_media.module import auth
 from get_media.module.database import database
-from get_media.request.user import UserRegister, UserToken
+from get_media.request.user import UserRegister, UserLogin, UserRefresh
 
 DB = database()
 
@@ -36,14 +36,18 @@ def register(request):
 
 @api_view(['POST'])
 def token(request):
-    form = UserToken(request.POST)
-    print(form)
-    if not form.is_valid():
-        return JsonResponse(status=400, data=dict(message="Bad Request"))
-    if form.cleaned_data['grant_type'] not in ['password', 'refresh_token']:
-        return JsonResponse(status=400, data=dict(message='Grant type is not valid'))
-    if form.cleaned_data['grant_type'] == 'password':
+    form = UserLogin(request.POST)
+    if form.is_valid():
+        if form.cleaned_data['grant_type'] != 'password':
+            return JsonResponse(status=400, data=dict(message='Grant type is not valid'))
         return login(form)
+    else:
+        form = UserRefresh(request.POST)
+        if not form.is_valid():
+            return JsonResponse(status=400, data=dict(message="Bad Request"))
+        if form.cleaned_data['grant_type'] != 'refresh_token':
+            return JsonResponse(status=400, data=dict(message='Grant type is not valid'))
+        return refresh(form)
 
 
 def login(data):
@@ -59,6 +63,22 @@ def login(data):
                     refreshToken=auth.generate_refresh_token(username=user['username'],
                                                              email=user['email'],
                                                              password=user['password']).decode(),
+                    expireAt=int(time()) + 3600)
+    return JsonResponse(status=200,
+                        data=response)
+
+
+def refresh(data):
+    user = auth.check_refresh_token(data.cleaned_data['refresh_token'])
+    if user in [0, -1]:
+        return JsonResponse(status=400, data={'message': 'Refresh token is not correct or expired'})
+    col = DB["user"]
+    user = col.find_one({"password": user.password})
+    if not user:
+        return JsonResponse(status=400, data={'message': 'Can not refresh token'})
+    response = dict(accessToken=auth.generate_access_token(username=user['username'],
+                                                           email=user['email']).decode(),
+                    refreshToken=data.cleaned_data['refresh_token'],
                     expireAt=int(time()) + 3600)
     return JsonResponse(status=200,
                         data=response)

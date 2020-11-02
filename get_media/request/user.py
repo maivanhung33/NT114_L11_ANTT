@@ -9,7 +9,12 @@ class UserRegister(forms.Form):
     password = forms.CharField(label='password', max_length=100)
 
 
-class UserToken(forms.Form):
+class UserLogin(forms.Form):
     username = forms.CharField(label='username', max_length=50)
     password = forms.CharField(label='password', max_length=100)
     grant_type = forms.CharField(label='grant_type', max_length=20)
+
+
+class UserRefresh(forms.Form):
+    grant_type = forms.CharField(label='grant_type', max_length=20)
+    refresh_token = forms.CharField(label='refresh_token')

@@ -9,14 +9,14 @@ SECRET = os.environ.get('SECRET') or 'uit.edu.vn'
 
 
 @dataclass
-class TokenInfo:
+class RefreshTokenInfo:
     username: str
     password: bcrypt
     email: str = None
 
     @staticmethod
     def new(data: dict):
-        return TokenInfo(username=data['username'])
+        return RefreshTokenInfo(username=data['username'], password=data['password'], email=data['email'])
 
 
 def generate_access_token(username, email):
@@ -40,15 +40,10 @@ def generate_refresh_token(username, email, password):
     return jwt.encode(data, SECRET, algorithm='HS256')
 
 
-def check_token(request):
-    try:
-        token = request.headers['Authorization'].split(' ')[1]
-    except Exception as e:
-        raise e
-
+def check_refresh_token(token):
     try:
         data = jwt.decode(jwt=token, key=SECRET, algorithm='HS256')
-        return TokenInfo.new(data)
+        return RefreshTokenInfo.new(data)
     except jwt.ExpiredSignatureError:
         return 0
     except jwt.InvalidTokenError:
