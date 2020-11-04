@@ -1,3 +1,4 @@
+bcrypt
 djangorestframework
 django
 dataclasses
@@ -8,3 +9,4 @@ dnspython
 django-cors-headers
 pyjwt
 TikTokApi
+twilio

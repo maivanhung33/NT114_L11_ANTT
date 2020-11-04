@@ -13,12 +13,12 @@ class FavoriteItem:
 
 @dataclass
 class User:
-    username: str
     password: str
     lastname: str
     firstname: str
     birthday: int
     favorites: List[FavoriteItem]
+    phone: str
+    verified: bool = False
     avatar: str = None
-    phone: str = None
     email: str = None

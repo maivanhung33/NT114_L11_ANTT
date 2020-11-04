@@ -10,20 +10,20 @@ SECRET = os.environ.get('SECRET') or 'uit.edu.vn'
 
 @dataclass
 class RefreshTokenInfo:
-    username: str
+    phone: str
     password: bcrypt
     email: str = None
 
     @staticmethod
     def new(data: dict):
-        return RefreshTokenInfo(username=data['username'], password=data['password'], email=data['email'])
+        return RefreshTokenInfo(phone=data['phone'], password=data['password'], email=data['email'])
 
 
-def generate_access_token(username, email):
+def generate_access_token(phone, email):
     now = int(time.time())
     token_expire_at = now + 3600
     data = {
-        "username": username,
+        "phone": phone,
         "email": email,
         "start_at": now,
         "exp": token_expire_at,
@@ -31,9 +31,9 @@ def generate_access_token(username, email):
     return jwt.encode(data, SECRET, algorithm='HS256')
 
 
-def generate_refresh_token(username, email, password):
+def generate_refresh_token(phone, email, password):
     data = {
-        "username": username,
+        "phone": phone,
         "email": email,
         "password": password
     }
