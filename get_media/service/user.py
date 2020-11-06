@@ -33,9 +33,9 @@ def register(request):
     col.insert_one(new_user.__dict__)
     phone_send_otp = form.cleaned_data['phone'].replace("0", "+84")
 
-    account_sid = 'ACcdb694e13e6682b8684c5c87b159e90e'
-    auth_token = '4f22963775df5caa493fd39486236ff0'
-    service_id = 'VAbc7be24b5576704783b92dd68283da72'
+    account_sid = ''
+    auth_token = ''
+    service_id = ''
 
     client = Client(account_sid, auth_token)
 
