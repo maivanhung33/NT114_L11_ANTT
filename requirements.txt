@@ -10,3 +10,4 @@ django-cors-headers
 pyjwt
 TikTokApi
 twilio
+pyppeteer
