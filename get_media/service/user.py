@@ -1,17 +1,22 @@
+import os
 from time import time
 
 import bcrypt
 from django.core.files.storage import FileSystemStorage
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
-import os
+from twilio.rest import Client
+
 from get_media.model.user import User
 from get_media.module import auth
 from get_media.module.database import database
 from get_media.request.user import UserRegister, UserLogin, UserRefresh, UserConfirmOtp
-from twilio.rest import Client
 
 DB = database()
+
+ACCOUNT_SID = os.environ.get('ACCOUNT_SID') or 'ACcdb694e13e6682b8684c5c87b159e90e'
+AUTH_TOKEN = os.environ.get('AUTH_TOKEN') or '4f22963775df5caa493fd39486236ff0'
+SERVICE_ID = os.environ.get('SERVICE_ID') or 'VAbc7be24b5576704783b92dd68283da72'
 
 
 @api_view(['POST'])
@@ -33,14 +38,9 @@ def register(request):
     col.insert_one(new_user.__dict__)
     phone_send_otp = form.cleaned_data['phone'].replace("0", "+84")
 
-    account_sid = ''
-    auth_token = ''
-    service_id = ''
-
-    client = Client(account_sid, auth_token)
-
-    verification = client.verify \
-        .services(service_id) \
+    client = Client(ACCOUNT_SID, AUTH_TOKEN)
+    client.verify \
+        .services(SERVICE_ID) \
         .verifications \
         .create(to=phone_send_otp, channel='sms')
     return JsonResponse(status=201,
@@ -115,13 +115,10 @@ def confirm_otp(request):
         return JsonResponse(status=404, data=dict(message="User not exits"))
 
     phone_send_otp = form.cleaned_data['phone'].replace("0", "+84")
-    account_sid = 'ACcdb694e13e6682b8684c5c87b159e90e'
-    auth_token = '4f22963775df5caa493fd39486236ff0'
-    service_id = 'VAbc7be24b5576704783b92dd68283da72'
 
-    client = Client(account_sid, auth_token)
+    client = Client(ACCOUNT_SID, AUTH_TOKEN)
     verification_check = client.verify \
-        .services(service_id) \
+        .services(SERVICE_ID) \
         .verification_checks \
         .create(to=phone_send_otp, code=form.cleaned_data['otp'])
     if verification_check.status == 'approved':
@@ -129,7 +126,6 @@ def confirm_otp(request):
         col.update_one({"phone": form.cleaned_data['phone']}, update_verified)
         return JsonResponse(status=200, data={"status": "success", "message": ""})
     return JsonResponse(status=404, data={"status": "fail", "message": "Otp incorrect"})
-
 
 # def update():
 #     avatar_type = form.cleaned_data["avatar"].content_type
