@@ -26,7 +26,7 @@ def register(request):
         return JsonResponse(status=400, data=dict(message="Bad Request"))
 
     col = DB["user"]
-    is_exits = col.find_one({"phone": form.cleaned_data['phone'], "verify": True})
+    is_exits = col.find_one({"phone": form.cleaned_data['phone'], "verified": True})
     if is_exits:
         return JsonResponse(status=422, data=dict(message="User name has exits"))
     new_user = User(phone=form.cleaned_data['phone'],
@@ -65,7 +65,7 @@ def token(request):
 
 def login(data):
     col = DB["user"]
-    user = col.find_one({"phone": data.cleaned_data['phone'], "verify": True})
+    user = col.find_one({"phone": data.cleaned_data['phone'], "verified": True})
     if not user:
         return JsonResponse(status=404, data=dict(message="User not exits"))
     if not bcrypt.checkpw(data.cleaned_data['password'].encode(), user['password'].encode()):
