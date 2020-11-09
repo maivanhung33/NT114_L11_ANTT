@@ -11,3 +11,4 @@ pyjwt
 TikTokApi
 twilio
 pyppeteer
+pyppeteer-stealth
