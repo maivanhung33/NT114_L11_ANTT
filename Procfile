@@ -1,1 +1,1 @@
-web: gunicorn django_structure.wsgi
+web: gunicorn NT114_L11_ANTT.wsgi
