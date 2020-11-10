@@ -64,7 +64,7 @@ def token(request):
 @api_view(['POST'])
 def reset_password(request):
     form = ResetPassword(request.POST)
-    if form.is_valid():
+    if not form.is_valid():
         return JsonResponse(status=400, data=dict(message="Bad Request"))
     col = DB["user"]
     user = col.find_one({"phone": form.cleaned_data['phone'], "verified": True})
