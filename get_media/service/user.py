@@ -10,7 +10,8 @@ from twilio.rest import Client
 from get_media.model.user import User
 from get_media.module import auth
 from get_media.module.database import database
-from get_media.request.user import UserRegister, UserLogin, UserRefresh, UserConfirmOtp
+from get_media.request.user import UserRegister, UserLogin, UserRefresh, VerifyOtpRegister, ResetPassword, \
+    VerifyOtpResetPassword
 
 DB = database()
 
@@ -35,14 +36,11 @@ def register(request):
                     firstname=form.cleaned_data['firstname'],
                     birthday=form.cleaned_data['birthday'],
                     favorites=[])
-    col.insert_one(new_user.__dict__)
-    phone_send_otp = form.cleaned_data['phone'].replace("0", "+84")
 
-    client = Client(ACCOUNT_SID, AUTH_TOKEN)
-    client.verify \
-        .services(SERVICE_ID) \
-        .verifications \
-        .create(to=phone_send_otp, channel='sms')
+    col.insert_one(new_user.__dict__)
+
+    send_otp(form.cleaned_data['phone'])
+
     return JsonResponse(status=201,
                         data={"status": "success", "message": ""})
 
@@ -61,6 +59,57 @@ def token(request):
         if form.cleaned_data['grant_type'] != 'refresh_token':
             return JsonResponse(status=400, data=dict(message='Grant type is not valid'))
         return refresh(form)
+
+
+@api_view(['POST'])
+def reset_password(request):
+    form = ResetPassword(request.POST)
+    if form.is_valid():
+        return JsonResponse(status=400, data=dict(message="Bad Request"))
+    col = DB["user"]
+    user = col.find_one({"phone": form.cleaned_data['phone'], "verified": True})
+    if not user:
+        return JsonResponse(status=404, data=dict(message="User not exits"))
+
+    send_otp(form.cleaned_data['phone'])
+
+    return JsonResponse(status=200,
+                        data={"status": "pending", "message": "waiting confirm otp"})
+
+
+@api_view(['POST'])
+def verify_opt_register(request):
+    form = VerifyOtpRegister(request.POST)
+    if not form.is_valid():
+        return JsonResponse(status=400, data=dict(message="Bad Request"))
+    col = DB["user"]
+    user = col.find_one({"phone": form.cleaned_data['phone'], 'verify': False})
+    if not user:
+        return JsonResponse(status=404, data=dict(message="User not exits or Has verified"))
+
+    if verify_otp(phone=form.cleaned_data['phone'], otp=form.cleaned_data['otp']) == 'approved':
+        update_verified = {"$set": {"verified": True}}
+        col.update_one({"phone": form.cleaned_data['phone']}, update_verified)
+        return JsonResponse(status=200, data={"status": "success", "message": ""})
+    return JsonResponse(status=404, data={"status": "fail", "message": "Otp incorrect"})
+
+
+@api_view(['POST'])
+def verify_opt_reset_password(request):
+    form = VerifyOtpResetPassword(request.POST)
+    if not form.is_valid():
+        return JsonResponse(status=400, data=dict(message="Bad Request"))
+    col = DB["user"]
+    user = col.find_one({"phone": form.cleaned_data['phone'], 'verify': True})
+    if not user:
+        return JsonResponse(status=404, data=dict(message="User not exits"))
+
+    if verify_otp(phone=form.cleaned_data['phone'], otp=form.cleaned_data['otp']) == 'approved':
+        update_password = {
+            "$set": {"password": bcrypt.hashpw(form.cleaned_data['password'].encode(), bcrypt.gensalt()).decode()}}
+        col.update_one({"phone": form.cleaned_data['phone']}, update_password)
+        return JsonResponse(status=200, data={"status": "success", "message": "Password has been updated"})
+    return JsonResponse(status=404, data={"status": "fail", "message": "Otp incorrect"})
 
 
 def login(data):
@@ -103,29 +152,23 @@ def handle_uploaded_file(f, username, extension):
     return fs.url(filename)
 
 
-@api_view(['POST'])
-def confirm_otp(request):
-    form = UserConfirmOtp(request.POST)
-    if not form.is_valid():
-        return JsonResponse(status=400, data=dict(message="Bad Request"))
+def send_otp(phone):
+    phone_send_otp = phone.replace("0", "+84")
+    client = Client(ACCOUNT_SID, AUTH_TOKEN)
+    return client.verify \
+        .services(SERVICE_ID) \
+        .verifications \
+        .create(to=phone_send_otp, channel='sms')
 
-    col = DB["user"]
-    user = col.find_one({"phone": form.cleaned_data['phone']})
-    if not user:
-        return JsonResponse(status=404, data=dict(message="User not exits"))
 
-    phone_send_otp = form.cleaned_data['phone'].replace("0", "+84")
-
+def verify_otp(phone, otp):
+    phone_send_otp = phone.replace("0", "+84")
     client = Client(ACCOUNT_SID, AUTH_TOKEN)
     verification_check = client.verify \
         .services(SERVICE_ID) \
         .verification_checks \
-        .create(to=phone_send_otp, code=form.cleaned_data['otp'])
-    if verification_check.status == 'approved':
-        update_verified = {"$set": {"verified": True}}
-        col.update_one({"phone": form.cleaned_data['phone']}, update_verified)
-        return JsonResponse(status=200, data={"status": "success", "message": ""})
-    return JsonResponse(status=404, data={"status": "fail", "message": "Otp incorrect"})
+        .create(to=phone_send_otp, code=otp)
+    return verification_check.status
 
 # def update():
 #     avatar_type = form.cleaned_data["avatar"].content_type

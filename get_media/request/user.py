@@ -20,6 +20,16 @@ class UserRefresh(forms.Form):
     refresh_token = forms.CharField(label='refresh_token')
 
 
-class UserConfirmOtp(forms.Form):
+class VerifyOtpRegister(forms.Form):
     phone = forms.CharField(label='phone', max_length=50)
     otp = forms.CharField(label='otp', max_length=10)
+
+
+class VerifyOtpResetPassword(forms.Form):
+    phone = forms.CharField(label='phone', max_length=50)
+    otp = forms.CharField(label='otp', max_length=10)
+    password = forms.CharField(label='password', max_length=100)
+
+
+class ResetPassword(forms.Form):
+    phone = forms.CharField(label='phone', max_length=10)
