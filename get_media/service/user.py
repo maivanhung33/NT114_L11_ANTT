@@ -83,7 +83,7 @@ def verify_opt_register(request):
     if not form.is_valid():
         return JsonResponse(status=400, data=dict(message="Bad Request"))
     col = DB["user"]
-    user = col.find_one({"phone": form.cleaned_data['phone'], 'verify': False})
+    user = col.find_one({"phone": form.cleaned_data['phone'], 'verified': False})
     if not user:
         return JsonResponse(status=404, data=dict(message="User not exits or Has verified"))
 
@@ -100,7 +100,7 @@ def verify_opt_reset_password(request):
     if not form.is_valid():
         return JsonResponse(status=400, data=dict(message="Bad Request"))
     col = DB["user"]
-    user = col.find_one({"phone": form.cleaned_data['phone'], 'verify': True})
+    user = col.find_one({"phone": form.cleaned_data['phone'], 'verified': True})
     if not user:
         return JsonResponse(status=404, data=dict(message="User not exits"))
 
