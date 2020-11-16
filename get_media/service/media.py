@@ -15,10 +15,10 @@ def get_video_facebook(request):
         return JsonResponse(data={'message': 'URL_REQUIRED'}, status=400)
     try:
         facebook = FaceBook(data['url'])
-        return JsonResponse(status=200, data={"url": facebook.get_link()})
+        return JsonResponse(status=200, data=facebook.get_link())
     except Exception as e:
         print(e)
-        return JsonResponse(status=200, data=dict(url=None))
+        return JsonResponse(status=200, data={'owner': None, 'data': []})
 
 
 @api_view(['POST'])

@@ -49,14 +49,13 @@ class FaceBook:
     def __get_page_id(self):
         url = "https://www.facebook.com/ajax/bulk-route-definitions/"
 
-        payload = 'route_urls[0]=/{}&fb_dtsg=AQGcq0VF8DX-:AQFdsc-HSCJy'.format(self.__page_name)
+        payload = 'route_urls[0]=/{}&fb_dtsg=AQG8efRGZiDH%3AAQEEcyya2P4u'.format(self.__page_name)
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'Cookie': 'c_user=100006040201647; spin=r.1002938977_b.trunk_t.1604846167_s.1_v.2_; xs=43%3ArXUM7Zy8rJpH9Q%3A2%3A1587656106%3A16304%3A6190%3A%3AAcXWT8VFUEe8p1XDBBAIvs3TaGgZRhkA8r2AVYaogxJX; fr=0hnKe9SVLKEFxvJpl.AWUPM0yhDgWK73boWgWjqF6OXSQ.BfftX_.fF.AAA.0.0.BfqAkj.AWX0-1WXQoE'
+            'Cookie': 'c_user=100006040201647; xs=24%3AILjNxnOC6pdzeQ%3A2%3A1605231199%3A16304%3A6190%3A%3AAcUM7Y2oyTY0js50qnx2470-fzlhfBYqp4AtcVCMMQ; fr=0hnKe9SVLKEFxvJpl.AWWaOx7sXjL1xwzfYfHQC3joFCM.BfftX_.5K.AAA.0.0.BfsVTH.AWVU_ESfuOk'
         }
 
         response = requests.request("POST", url, headers=headers, data=payload)
-
         try:
             id = json.loads(response.text.replace('for (;;);', ''))
             id = id['payload']['payloads']['/' + self.__page_name]['result']['exports']['hostableView']['props'][
@@ -95,7 +94,7 @@ class FaceBook:
                 list_latest_videos = item['data']['latest_videos']['edges']
                 break
         response = dict(
-            owner=None,
+            owner={'name': self.__page_name},
             data=[]
         )
         for item in list_latest_videos:
@@ -122,9 +121,7 @@ class FaceBook:
         }
 
         response = requests.request("POST", url, headers=headers, data=payload)
-
         return response.json()['data']['video']['playable_url']
-
 
 # _url = 'https://fb.watch/1oIoNues8H/'
 # _url = 'https://www.facebook.com/nguoc.confessions'

@@ -3,6 +3,7 @@ from time import time
 
 import bcrypt
 from django.core.files.storage import FileSystemStorage
+from django.http import HttpResponse, HttpResponseNotFound
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
 from twilio.rest import Client
@@ -11,12 +12,12 @@ from get_media.model.user import User
 from get_media.module import auth
 from get_media.module.database import database
 from get_media.request.user import UserRegister, UserLogin, UserRefresh, VerifyOtpRegister, ResetPassword, \
-    VerifyOtpResetPassword
+    VerifyOtpResetPassword, AvatarUpload, UserUpdate
 
 DB = database()
 
 ACCOUNT_SID = os.environ.get('ACCOUNT_SID') or 'ACcdb694e13e6682b8684c5c87b159e90e'
-AUTH_TOKEN = os.environ.get('AUTH_TOKEN') or '4f22963775df5caa493fd39486236ff0'
+AUTH_TOKEN = os.environ.get('AUTH_TOKEN') or 'b7838562ce17eacf21e8bc3943c07a45'
 SERVICE_ID = os.environ.get('SERVICE_ID') or 'VAbc7be24b5576704783b92dd68283da72'
 
 
@@ -115,6 +116,119 @@ def verify_opt_reset_password(request):
     return JsonResponse(status=404, data={'status': 'fail', 'message': 'Otp incorrect'})
 
 
+@api_view(['GET'])
+def get_user(request):
+    # Get token
+    try:
+        access_token = request.headers['Authorization'].split(' ')[1]
+    except Exception as e:
+        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
+    is_auth = auth.check_access_token(access_token)
+    if is_auth == -1:
+        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
+    elif is_auth == 0:
+        return JsonResponse(status=401, data={'message': 'Token invalid'})
+
+    col = DB['user']
+    user = col.find_one(
+        {'phone': is_auth.phone, 'verified': True},
+        {'_id': 0, 'password': 0, 'favorites': 0})
+
+    return JsonResponse(status=200, data=user)
+
+
+@api_view(['GET', 'POST'])
+def avatar(request):
+    if request.method == 'GET':
+        return get_avatar(request)
+    elif request.method == 'POST':
+        return upload_avatar(request)
+
+
+def get_avatar(request):
+    # Get token
+    try:
+        access_token = request.headers['Authorization'].split(' ')[1]
+    except Exception as e:
+        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
+    is_auth = auth.check_access_token(access_token)
+    if is_auth == -1:
+        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
+    elif is_auth == 0:
+        return JsonResponse(status=401, data={'message': 'Token invalid'})
+
+    col = DB['user']
+    user = col.find_one(
+        {'phone': is_auth.phone, 'verified': True},
+        {'avatar': 1})
+    try:
+        file_location = 'get_media/images{}'.format(user['avatar'])
+        image_data = open(file_location, "rb").read()
+        content_type = 'image/' + user['avatar'].split('.')[1]
+
+        return HttpResponse(image_data, content_type=content_type)
+    except IOError:
+        return HttpResponseNotFound('Not Found')
+
+
+def upload_avatar(request):
+    # Get token
+    try:
+        access_token = request.headers['Authorization'].split(' ')[1]
+    except Exception as e:
+        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
+    is_auth = auth.check_access_token(access_token)
+    if is_auth == -1:
+        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
+    elif is_auth == 0:
+        return JsonResponse(status=401, data={'message': 'Token invalid'})
+
+    form = AvatarUpload(request.POST, request.FILES)
+    if not form.is_valid():
+        return JsonResponse(status=400, data=dict(message='Bad Request'))
+
+    avatar_type = form.cleaned_data['avatar'].content_type
+    if avatar_type not in ['image/jpeg', 'image/png']:
+        return JsonResponse(status=400, data=dict(message='Avatar must be JPEG or PNG'))
+    avatar_extension = avatar_type.split('/')[1]
+
+    avatar_url = handle_uploaded_file(form.cleaned_data['avatar'], is_auth.phone, avatar_extension)
+
+    col = DB['user']
+    col.update_one({'phone': is_auth.phone}, {'$set': {'avatar': avatar_url}})
+
+    return JsonResponse(status=200, data={'url': avatar_url})
+
+
+@api_view(['PUT'])
+def update_user(request):
+    # Get token
+    try:
+        access_token = request.headers['Authorization'].split(' ')[1]
+    except Exception as e:
+        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
+    is_auth = auth.check_access_token(access_token)
+    if is_auth == -1:
+        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
+    elif is_auth == 0:
+        return JsonResponse(status=401, data={'message': 'Token invalid'})
+
+    form = UserUpdate(request.POST)
+    if not form.is_valid():
+        return JsonResponse(status=400, data=dict(message='Bad Request'))
+
+    data = {'birthday': form.cleaned_data['birthday'],
+            'firstname': form.cleaned_data['firstname'],
+            'lastname': form.cleaned_data['lastname'],
+            'email': form.cleaned_data['email']}
+    col = DB['user']
+    col.update_one(
+        {'phone': is_auth.phone, 'verified': True},
+        {'$set': data})
+
+    return JsonResponse(status=200, data={'message': 'success'})
+
+
 def login(data):
     col = DB['user']
     user = col.find_one({'phone': data.cleaned_data['phone'], 'verified': True})
@@ -124,6 +238,8 @@ def login(data):
         return JsonResponse(status=401, data=dict(message='Password is not correct'))
 
     response = dict(accessToken=auth.generate_access_token(phone=user['phone'],
+                                                           firstname=user['firstname'],
+                                                           lastname=user['lastname'],
                                                            email=user['email']).decode(),
                     refreshToken=auth.generate_refresh_token(phone=user['phone'],
                                                              email=user['email'],
@@ -142,6 +258,8 @@ def refresh(data):
     if not user:
         return JsonResponse(status=400, data={'message': 'Can not refresh token'})
     response = dict(accessToken=auth.generate_access_token(phone=user['phone'],
+                                                           firstname=user['firstname'],
+                                                           lastname=user['lastname'],
                                                            email=user['email']).decode(),
                     refreshToken=data.cleaned_data['refresh_token'],
                     expireAt=int(time()) + 3600)
@@ -149,9 +267,10 @@ def refresh(data):
                         data=response)
 
 
-def handle_uploaded_file(f, username, extension):
+def handle_uploaded_file(f, phone, extension):
     fs = FileSystemStorage(location='get_media/images')
-    filename = fs.save('{}.{}'.format(username, extension), f)
+    fs.delete('{}.{}'.format(phone, extension))
+    filename = fs.save('{}.{}'.format(phone, extension), f)
     return fs.url(filename)
 
 
@@ -172,10 +291,3 @@ def verify_otp(phone, otp):
         .verification_checks \
         .create(to=phone_send_otp, code=otp)
     return verification_check.status
-
-# def update():
-#     avatar_type = form.cleaned_data['avatar'].content_type
-#     if avatar_type not in ['image/jpeg', 'image/png']:
-#         return JsonResponse(status=400, data=dict(message='Avatar must be JPEG or PNG'))
-#     avatar_extension = avatar_type.split('/')[1]
-#     avatar_url = handle_uploaded_file(form.cleaned_data['avatar'], form.cleaned_data['username'], avatar_extension)

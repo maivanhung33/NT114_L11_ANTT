@@ -21,7 +21,7 @@ class TikTok:
 
     def __init__(self, url):
         self.__url = url
-        self.__api = TikTokApi()
+        # self.__api = TikTokApi.get_instance()
 
     def __validate(self):
         self.__url = self.__url.split('?')[0]
@@ -51,12 +51,12 @@ class TikTok:
         if self.__validate():
             self.__get_video_id()
             response = requests.get(self.__url, cookies=self.__cookies, headers=self.HEADERS)
-            user = self.__api.getTikTokByUrl(self.__url)['itemInfo']['itemStruct']['author']
-            user = dict(username=user['nickname'],
-                        avatar=user['avatarMedium'])
+            # user = self.__api.getTikTokByUrl(self.__url)['itemInfo']['itemStruct']['author']
+            # user = dict(username=user['nickname'],
+            #             avatar=user['avatarMedium'])
             return dict(url=response.text.split('"playAddr":"')[1].split('"')[0].replace(r'\u0026', '&'),
                         headers=self.__headers,
-                        user=user)
+                        user=None)
         return None
 
 

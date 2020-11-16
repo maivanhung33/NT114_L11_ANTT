@@ -19,12 +19,30 @@ class RefreshTokenInfo:
         return RefreshTokenInfo(phone=data['phone'], password=data['password'], email=data['email'])
 
 
-def generate_access_token(phone, email):
+@dataclass
+class AccessTokenInfo:
+    phone: str
+    firstname: str
+    lastname: str
+    email: str = None
+
+    @staticmethod
+    def new(data: dict):
+        return AccessTokenInfo(
+            phone=data['phone'],
+            firstname=data['firstname'],
+            lastname=data['lastname'],
+            email=data['email'])
+
+
+def generate_access_token(phone, firstname, lastname, email):
     now = int(time.time())
     token_expire_at = now + 3600
     data = {
         "phone": phone,
         "email": email,
+        'firstname': firstname,
+        'lastname': lastname,
         "start_at": now,
         "exp": token_expire_at,
     }
@@ -44,6 +62,16 @@ def check_refresh_token(token):
     try:
         data = jwt.decode(jwt=token, key=SECRET, algorithm='HS256')
         return RefreshTokenInfo.new(data)
+    except jwt.ExpiredSignatureError:
+        return 0
+    except jwt.InvalidTokenError:
+        return -1
+
+
+def check_access_token(token):
+    try:
+        data = jwt.decode(jwt=token, key=SECRET, algorithm='HS256')
+        return AccessTokenInfo.new(data)
     except jwt.ExpiredSignatureError:
         return 0
     except jwt.InvalidTokenError:

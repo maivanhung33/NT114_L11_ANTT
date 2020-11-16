@@ -33,3 +33,14 @@ class VerifyOtpResetPassword(forms.Form):
 
 class ResetPassword(forms.Form):
     phone = forms.CharField(label='phone', max_length=10)
+
+
+class AvatarUpload(forms.Form):
+    avatar = forms.FileField()
+
+
+class UserUpdate(forms.Form):
+    firstname = forms.CharField(label='firstname', max_length=20)
+    lastname = forms.CharField(label='lastname', max_length=20)
+    birthday = forms.IntegerField(label='birthday', min_value=0)
+    email = forms.CharField(max_length=50)
