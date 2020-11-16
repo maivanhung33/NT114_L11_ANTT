@@ -17,7 +17,7 @@ from get_media.request.user import UserRegister, UserLogin, UserRefresh, VerifyO
 DB = database()
 
 ACCOUNT_SID = os.environ.get('ACCOUNT_SID') or 'ACcdb694e13e6682b8684c5c87b159e90e'
-AUTH_TOKEN = os.environ.get('AUTH_TOKEN') or 'b7838562ce17eacf21e8bc3943c07a45'
+AUTH_TOKEN = os.environ.get('AUTH_TOKEN') or ''
 SERVICE_ID = os.environ.get('SERVICE_ID') or 'VAbc7be24b5576704783b92dd68283da72'
 
 
