@@ -75,6 +75,9 @@ def reset_password(request):
     form = ResetPassword(request.POST)
     if not form.is_valid():
         return JsonResponse(status=400, data=dict(message='Bad Request'))
+    if not validation_phone(form.cleaned_data['phone']):
+        return JsonResponse(status=400, data=dict(message='Wrong phone number format'))
+
     col = DB['user']
     user = col.find_one({'phone': form.cleaned_data['phone'], 'verified': True})
     if not user:
