@@ -11,5 +11,6 @@ urlpatterns = [
     path('me', user.get_user, name='user-info'),
     path('me/avatar', user.avatar, name='avatar'),
     path('me/update', user.update_user, name='update-user'),
-    path('me/add', user.add_to_collection, name='add-to-collection')
+    path('me/add', user.add_to_collection, name='add-to-collection'),
+    path('me/collection', user.get_collection, name='get_collection')
 ]

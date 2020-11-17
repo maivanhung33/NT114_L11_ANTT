@@ -214,7 +214,7 @@ def add_to_collection(request):
     return JsonResponse(status=200, data={'message': 'Success'})
 
 
-@api_view(['POST'])
+@api_view(['GET'])
 def get_collection(request):
     # Get token
     try:
