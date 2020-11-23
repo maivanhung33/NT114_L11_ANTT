@@ -66,7 +66,7 @@ class InstaAPI:
             if user == {}:
                 return {}
             del user['graphql']['user']['edge_felix_video_timeline']
-            del user['graphql']['user']['edge_owner_to_timeline_media']
+            del user['graphql']['user']['edge_owner_to_timeline_media']['edges']
             del user['graphql']['user']['edge_saved_media']
             del user['graphql']['user']['edge_media_collections']
 

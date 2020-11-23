@@ -48,7 +48,7 @@ def get_insta_media(request):
             "avatar": info['user']['profile_pic_url_hd'],
             "username": info['user']['username'],
             "fullname": info['user']['full_name'],
-            "countPost": info['user']['edge_follow']['count'],
+            "countPost": info['user']['edge_owner_to_timeline_media']['count'],
             "countFollowedBy": info['user']['edge_followed_by']['count']
         }
     elif info['user'] is None:
