@@ -18,9 +18,9 @@ class InstaAPI:
             self.__payload = {}
             self.__query_param = {}
 
-    def __get_media(self, user_id, cursor: str):
+    def __get_media(self, user_id, limit, cursor: str):
         url = self.BASE_URL + '?query_hash=e769aa130647d2354c40ea6a439bfc08&variables={\"id":\"'
-        url += str(user_id) + '\",\"first\":50,\"after\":\"'
+        url += str(user_id) + '\",\"first\":{},\"after\":\"'.format(limit)
         url += str(cursor) + '\"}'
         return requests.get(url, headers=self.__header, timeout=3).json()
 
@@ -77,7 +77,7 @@ class InstaAPI:
 
             user_id = user['graphql']['user']['id']
             data = []
-            response = self.__get_media(user_id, cursor)
+            response = self.__get_media(user_id, limit, cursor)
             edges = response['data']['user']['edge_owner_to_timeline_media']['edges']
             for edge in edges:
                 data.append(edge['node'])
