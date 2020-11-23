@@ -43,10 +43,7 @@ def register(request):
                     birthday=form.cleaned_data['birthday'],
                     favorites=[])
 
-    col.update(
-        {'phone': form.cleaned_data['phone']},
-        {'$set': new_user.__dict__},
-        upsert=True)
+    col.update({'phone': form.cleaned_data['phone']}, {'$set': new_user.__dict__}, upsert=True)
 
     send_otp(form.cleaned_data['phone'])
 
@@ -85,8 +82,7 @@ def reset_password(request):
 
     send_otp(form.cleaned_data['phone'])
 
-    return JsonResponse(status=200,
-                        data={'status': 'pending', 'message': 'waiting confirm otp'})
+    return JsonResponse(status=200, data={'status': 'pending', 'message': 'waiting confirm otp'})
 
 
 @api_view(['POST'])
@@ -173,9 +169,7 @@ def update_user(request):
             'lastname': form.cleaned_data['lastname'],
             'email': form.cleaned_data['email']}
     col = DB['user']
-    col.update_one(
-        {'phone': is_auth.phone, 'verified': True},
-        {'$set': data})
+    col.update_one({'phone': is_auth.phone, 'verified': True}, {'$set': data})
 
     return JsonResponse(status=200, data={'message': 'success'})
 
@@ -208,11 +202,8 @@ def add_to_collection(request):
         return JsonResponse(status=401, data={'message': 'Token invalid'})
 
     col = DB['user']
-    update_data = dict(url=request_data['url'],
-                       type=request_data['type'])
-    col.update_one(
-        {'phone': is_auth.phone, 'verified': True},
-        {'$push': {'favorites': update_data}})
+    update_data = dict(url=request_data['url'], type=request_data['type'])
+    col.update_one({'phone': is_auth.phone, 'verified': True}, {'$push': {'favorites': update_data}})
 
     return JsonResponse(status=200, data={'message': 'Success'})
 
@@ -231,9 +222,7 @@ def get_collection(request):
         return JsonResponse(status=401, data={'message': 'Token invalid'})
 
     col = DB['user']
-    user = col.find_one(
-        {'phone': is_auth.phone, 'verified': True},
-        {'favorites': 1})
+    user = col.find_one({'phone': is_auth.phone, 'verified': True}, {'favorites': 1})
 
     return JsonResponse(status=200, data={'count': len(user['favorites']), 'favorites': user['favorites']})
 
@@ -251,14 +240,12 @@ def get_avatar(request):
         return JsonResponse(status=401, data={'message': 'Token invalid'})
 
     col = DB['user']
-    user = col.find_one(
-        {'phone': is_auth.phone, 'verified': True},
-        {'avatar': 1})
+    user = col.find_one({'phone': is_auth.phone, 'verified': True}, {'avatar': 1})
+
     try:
         file_location = 'get_media/images{}'.format(user['avatar'])
         image_data = open(file_location, "rb").read()
         content_type = 'image/' + user['avatar'].split('.')[1]
-
         return HttpResponse(image_data, content_type=content_type)
     except IOError:
         return HttpResponseNotFound('Not Found')
