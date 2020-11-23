@@ -13,7 +13,7 @@ class InstaAPI:
         self.__url = url
         self.__type = ''
         if self.__validate():
-            self.__header = {'cookie': 'sessionid=5711537494:6CgNGeSaClp9xB:8;',
+            self.__header = {'cookie': 'sessionid={}'.format(ID),
                              'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 Safari/537.36'}
             self.__payload = {}
             self.__query_param = {}
