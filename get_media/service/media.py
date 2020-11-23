@@ -40,12 +40,16 @@ def get_insta_media(request):
     if 'url' not in data.keys():
         return JsonResponse(data={'message': 'URL_REQUIRED'}, status=400)
     insta = InstaAPI(data['url'])
-    info = insta.get()
+
+    limit = data['limit'] if 'limit' in data.keys() else 50
+    cursor = data['cursor'] if 'cursor' in data.keys() else ''
+    info = insta.get(limit, cursor)
     if 'data' not in info.keys():
         return JsonResponse(status=200, data=dict(owner=None, data=None))
+    owner = None
     if info['user'] is not None:
         owner: dict = {
-            "avatar": info['user']['profile_pic_url_hd'],
+            "avatar": info['user']['profile_pic_url'],
             "username": info['user']['username'],
             "fullname": info['user']['full_name'],
             "countPost": info['user']['edge_owner_to_timeline_media']['count'],
@@ -76,4 +80,11 @@ def get_insta_media(request):
             "countLike": i['edge_media_preview_like']['count']
         }
         posts.append(post)
-    return JsonResponse(status=200, data=dict(owner=owner, data=posts))
+    return JsonResponse(
+        status=200,
+        data=dict(
+            cursor=info['cursor'],
+            hasNextPage=info['has_next_page'],
+            owner=owner,
+            data=posts)
+    )
