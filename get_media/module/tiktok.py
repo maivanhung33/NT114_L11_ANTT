@@ -1,5 +1,6 @@
+import json
+
 import requests
-from TikTokApi import TikTokApi
 
 
 class TikTok:
@@ -51,14 +52,20 @@ class TikTok:
         if self.__validate():
             self.__get_video_id()
             response = requests.get(self.__url, cookies=self.__cookies, headers=self.HEADERS)
-            # user = self.__api.getTikTokByUrl(self.__url)['itemInfo']['itemStruct']['author']
-            # user = dict(username=user['nickname'],
-            #             avatar=user['avatarMedium'])
-            return dict(url=response.text.split('"playAddr":"')[1].split('"')[0].replace(r'\u0026', '&'),
-                        headers=self.__headers,
-                        user=None)
-        return None
+            author = '{' + \
+                     response.text.split('\"author\":{')[1].split('},\"music\"')[0].replace(r'\u0026', '&') + \
+                     '}'
+            author = json.loads(author)
+            user = dict(
+                nickname=author['nickname'],
+                avatar=author['avatarMedium']
+            )
 
+            return dict(url=response.text.split('\"playAddr\":\"')[1].split('\"')[0].replace(r'\u0026', '&'),
+                        thumbnail=response.text.split('\"originCover\":\"')[1].split('\"')[0].replace(r'\u0026', '&'),
+                        headers=self.__headers,
+                        user=user)
+        return None
 
 # tiktok = TikTok("https://www.tiktok.com/@khang0924046415/video/6888171864833789186")
 # print(tiktok.get_link())
