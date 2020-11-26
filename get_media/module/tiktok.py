@@ -56,15 +56,15 @@ class TikTok:
                      response.text.split('\"author\":{')[1].split('},\"music\"')[0].replace(r'\u0026', '&') + \
                      '}'
             author = json.loads(author)
-            user = dict(
-                nickname=author['nickname'],
+            owner = dict(
+                username=author['nickname'],
                 avatar=author['avatarMedium']
             )
 
             return dict(url=response.text.split('\"playAddr\":\"')[1].split('\"')[0].replace(r'\u0026', '&'),
                         thumbnail=response.text.split('\"originCover\":\"')[1].split('\"')[0].replace(r'\u0026', '&'),
                         headers=self.__headers,
-                        user=user)
+                        owner=owner)
         return None
 
 # tiktok = TikTok("https://www.tiktok.com/@khang0924046415/video/6888171864833789186")
