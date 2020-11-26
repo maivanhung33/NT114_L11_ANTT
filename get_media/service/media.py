@@ -1,6 +1,7 @@
 import json
 
-from django.http import JsonResponse
+import requests
+from django.http import JsonResponse, HttpResponse
 from rest_framework.decorators import api_view
 
 from get_media.module.facebook import FaceBook
@@ -28,7 +29,10 @@ def get_video_tiktok(request):
         return JsonResponse(data={'message': 'URL_REQUIRED'}, status=400)
     try:
         tiktok = TikTok(data['url'])
-        return JsonResponse(status=200, data=tiktok.get_link())
+        data = tiktok.get_link()
+        response = requests.get(data['url'], headers=data['headers'])
+        return HttpResponse(response.content, content_type='video/mp4')
+        # return JsonResponse(status=200, data=tiktok.get_link())
     except Exception as e:
         print(e)
         return JsonResponse(status=200, data=dict(url=None, headers=None, user=None))
