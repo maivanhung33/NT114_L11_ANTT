@@ -22,13 +22,13 @@ def get_video_facebook(request):
         return JsonResponse(status=200, data={'owner': None, 'data': []})
 
 
-@api_view(['POST'])
+@api_view(['GET'])
 def get_video_tiktok(request):
-    data: dict = json.loads(request.body.decode('utf-8'))
-    if 'url' not in data.keys():
+    # data: dict = json.loads(request.body.decode('utf-8'))
+    if 'url' not in request.GET.keys():
         return JsonResponse(data={'message': 'URL_REQUIRED'}, status=400)
     try:
-        tiktok = TikTok(data['url'])
+        tiktok = TikTok(request.GET['url'])
         data = tiktok.get_link()
         response = requests.get(data['url'], headers=data['headers'])
         return HttpResponse(response.content, content_type='video/mp4')
