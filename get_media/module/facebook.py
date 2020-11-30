@@ -153,7 +153,7 @@ class FaceBook:
         page_video = response.json()['data']['page']['page_video']['page_video_count']
 
         return dict(
-            name=name, follow=follow, websites=websites, about=about, count_video=page_video
+            username=name, follow=follow, websites=websites, about=about, count_video=page_video
         )
 
 # 194149144034882

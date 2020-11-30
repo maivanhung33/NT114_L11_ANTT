@@ -32,7 +32,19 @@ def get_video_tiktok(request):
         data = tiktok.get_link()
         response = requests.get(data['url'], headers=data['headers'])
         return HttpResponse(response.content, content_type='video/mp4')
-        # return JsonResponse(status=200, data=tiktok.get_link())
+    except Exception as e:
+        print(e)
+        return JsonResponse(status=200, data=dict(url=None, headers=None, user=None))
+
+
+@api_view(['GET'])
+def get_video_tiktok_info(request):
+    if 'url' not in request.GET.keys():
+        return JsonResponse(data={'message': 'URL_REQUIRED'}, status=400)
+    try:
+        tiktok = TikTok(request.GET['url'])
+        data = tiktok.get_link()
+        return JsonResponse(status=200, data=data)
     except Exception as e:
         print(e)
         return JsonResponse(status=200, data=dict(url=None, headers=None, user=None))

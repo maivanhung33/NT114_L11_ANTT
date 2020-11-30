@@ -48,7 +48,7 @@ def register(request):
     send_otp(form.cleaned_data['phone'])
 
     return JsonResponse(status=201,
-                        data={'status': 'success', 'message': ''})
+                        data={'status': 'success', 'message': 'Waiting for verifying your phone'})
 
 
 @api_view(['POST'])
@@ -101,7 +101,7 @@ def verify_opt_register(request):
     if verify_otp(phone=form.cleaned_data['phone'], otp=form.cleaned_data['otp']) == 'approved':
         update_verified = {'$set': {'verified': True}}
         col.update_one({'phone': form.cleaned_data['phone']}, update_verified)
-        return JsonResponse(status=200, data={'status': 'success', 'message': ''})
+        return JsonResponse(status=200, data={'status': 'success', 'message': 'Verified'})
     return JsonResponse(status=404, data={'status': 'fail', 'message': 'Otp incorrect'})
 
 
