@@ -72,13 +72,14 @@ def get_insta_media(request):
     data: dict = json.loads(request.body.decode('utf-8'))
     if 'url' not in data.keys():
         return JsonResponse(data={'message': 'URL_REQUIRED'}, status=400)
+    limit = data['limit'] if 'limit' in data.keys() else 50
+    cursor = data['cursor'] if 'cursor' in data.keys() else ''
+
     insta = InstaAPI(data['url'])
-    is_existing = find_existence(insta.get_url())
+    is_existing = find_existence(insta.get_url(), cursor)
     if is_existing is not None:
         return JsonResponse(status=200, data=is_existing)
 
-    limit = data['limit'] if 'limit' in data.keys() else 50
-    cursor = data['cursor'] if 'cursor' in data.keys() else ''
     info = insta.crawl(limit, cursor)
     if 'data' not in info.keys():
         return JsonResponse(status=200, data=dict(owner=None, data=None))
@@ -119,21 +120,26 @@ def get_insta_media(request):
 
     response = dict(cursor=info['cursor'], hasNextPage=info['has_next_page'], owner=owner, data=posts,
                     srcUrl=insta.get_url())
-    write_to_db(response)
+    write_to_db(response, cursor)
 
     return JsonResponse(status=200, data=response)
 
 
-def find_existence(link):
+def find_existence(link, cursor=None):
     col = DB['media']
-    is_exit = col.find_one({'srcUrl': link}, {'_id': 0})
+    if cursor is None:
+        query = {'srcUrl': link}
+    else:
+        query = {'srcUrl': link, 'first': cursor}
+    is_exit = col.find_one(query, {'_id': 0})
     if is_exit is not None:
         return is_exit
     return None
 
 
-def write_to_db(data):
+def write_to_db(data, first=None):
     col = DB['media']
     data['_expireAt'] = datetime.now()
+    data['first'] = first
     col.insert_one(data)
     del data['_id']
