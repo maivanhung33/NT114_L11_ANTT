@@ -7,6 +7,7 @@ class FaceBook:
 
     def __init__(self, url):
         self.__url = url
+        self.__validate()
 
     def __validate(self):
         if self.__url.find('https://www.facebook.com/') == 0:
@@ -14,7 +15,8 @@ class FaceBook:
             try:
                 if self.__url.split('https://www.facebook.com/')[1] == '':
                     return False
-                self.__page_name = self.__url.split('https://www.facebook.com/')[1]
+                self.__page_name = self.__url.split('https://www.facebook.com/')[1].split('/')[0]
+                self.__url = 'https://www.facebook.com/' + self.__page_name
             except Exception as e:
                 return False
         if self.__url.find('https://fb.watch/') == 0:
@@ -26,8 +28,10 @@ class FaceBook:
             self.__url = requests.get(self.__url).url
             return True
 
-    def get_link(self):
-        self.__validate()
+    def get_url(self):
+        return self.__url
+
+    def crawl(self):
         if self.__type == 2:
             page_id = self.__get_page_id()
             return self.__get_latest_videos(page_id)

@@ -32,6 +32,7 @@ class InstaAPI:
     def __get_user_info(self, user_name):
         url = self.USER_INFO_URL + str(user_name) + r'/?__a=1'
         data = requests.get(url, headers=self.__header, timeout=3)
+        print(data.text)
         return data.json()
 
     def __validate(self):
@@ -56,7 +57,7 @@ class InstaAPI:
         self.__header = {'cookie': 'sessionid={};'.format(session_id),
                          'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 Safari/537.36'}
 
-    def get(self, limit, cursor=''):
+    def crawl(self, limit, cursor=''):
         if self.__type == 'POST':
             post = self.__get_post(self.__shortcode)
             if post['data']['shortcode_media'] is None:
@@ -89,6 +90,9 @@ class InstaAPI:
                 user=user['graphql']['user'],
                 data=data)
         return None
+
+    def get_url(self):
+        return self.__url
 
 # insta = InstaAPI('https://www.instagram.com/')
 # print(insta.get())

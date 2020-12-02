@@ -2,7 +2,7 @@ import json
 
 import requests
 
-
+from TikTokApi import TikTokApi
 class TikTok:
     HEADERS = {
         'Connection': 'keep-alive',
