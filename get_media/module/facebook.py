@@ -36,42 +36,45 @@ class FaceBook:
         if self.__type == 1:
             try:
                 video_id = self.__url.split('/videos/')[1].replace('/', '')
-            except:
+                if video_id == '':
+                    return {'owner': None, 'data': []}
+                video = FaceBook.get_video_info(video_id)
+                owner = FaceBook.get_owner_info(video['owner_id'])
+                owner['avatar'] = self.get_avatar(video['owner_id'])
+                item = dict(
+                    url=FaceBook.get_download_url(video_id),
+                    thumbnail=video['thumbnail'],
+                    title=video['title'])
+                return {'owner': owner, 'data': [item]}
+            except Exception as e:
+                print('[FB] error ' + e.__str__())
                 return {'owner': None, 'data': []}
-            if video_id == '':
-                return {'owner': None, 'data': []}
-            video = FaceBook.get_video_info(video_id)
-            item = dict(
-                url=FaceBook.get_download_url(video_id),
-                thumbnail=video['thumbnail'],
-                title=video['title'])
-            return {'owner': None, 'data': [item]}
 
     def __get_page_id(self):
         page_html = requests.get(self.__url).text
         if page_html.find('\"fb://page/?id=') == -1:
             return ''
         page_id = page_html.split('"fb://page/?id=')[1].split("\"")[0]
-        self.__page_avatar = page_html \
-            .split('\"PagesProfilePictureEditMenu\"')[1] \
-            .split('\"uri\":\"')[1].split('\"')[0] \
-            .replace('\\', '')
         return page_id
 
     def __get_latest_videos(self, page_id, limit=10, cursor=None):
-        videos = self.get_latest_videos(page_id, limit, cursor)
+        try:
+            videos = self.get_latest_videos(page_id, limit, cursor)
 
-        owner = FaceBook.get_page_info(page_id)
-        owner['avatar'] = self.__page_avatar
+            owner = FaceBook.get_owner_info(page_id)
+            owner['avatar'] = self.get_avatar(page_id)
 
-        response = dict(owner=owner, data=[], cursor=videos['cursor'], hasNextPage=videos['hasNextPage'])
+            response = dict(owner=owner, data=[], cursor=videos['cursor'], hasNextPage=videos['hasNextPage'])
 
-        for video in videos['data']:
-            video_url = FaceBook.get_download_url(video['url'].split('/videos/')[1].split('/')[0])
-            video['url'] = video_url
-            response['data'].append(video)
+            for video in videos['data']:
+                video_url = FaceBook.get_download_url(video['url'].split('/videos/')[1].split('/')[0])
+                video['url'] = video_url
+                response['data'].append(video)
 
-        return response
+            return response
+        except Exception as e:
+            print('[FB] error ' + e.__str__())
+            return dict(owner=None, data=[], cursor=None, hasNextPage=None)
 
     @staticmethod
     def get_latest_videos(page_id, limit=10, cursor=None):
@@ -82,7 +85,6 @@ class FaceBook:
                   + ',\"scale\":1,\"useDefaultActor\":false,\"id\":\"{}\"'.format(page_id)
         payload += ',cursor:\"{}\"'.format(cursor) if cursor is not None else ''
         payload += '}&doc_id=5073419716001809'
-        print(payload)
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
@@ -92,7 +94,7 @@ class FaceBook:
         try:
             response = response.json()
         except Exception as e:
-            raise e
+            print('[FB] error ' + e.__str__())
             return {'data': [], 'cursor': None, 'hasNextPage': False}
 
         videos = response['data']['node']['latest_videos']['edges']
@@ -119,7 +121,6 @@ class FaceBook:
             'Content-Type': 'application/x-www-form-urlencoded'}
 
         response = requests.request("POST", url, headers=headers, data=payload)
-
         return dict(thumbnail=response.json()['data']['video']['image']['uri'],
                     owner_id=response.json()['data']['video']['owner']['id'],
                     title=response.json()['data']['video']['title']['text'])
@@ -139,7 +140,7 @@ class FaceBook:
         return request_response.json()['data']['video']['playable_url']
 
     @staticmethod
-    def get_page_info(page_id):
+    def get_owner_info(page_id):
         url = "https://www.facebook.com/api/graphql/"
 
         payload = 'variables={"pageID":\"' + page_id + '\"}&doc_id=1766735040109284'
@@ -156,15 +157,29 @@ class FaceBook:
 
         response = requests.request("POST", url, headers=headers, data=payload)
 
-        name = response.json()['data']['page']['name']
-        websites = response.json()['data']['page']['websites']
-        about = response.json()['data']['page']['about']['text']
-        page_video = response.json()['data']['page']['page_video']['page_video_count']
+        try:
+            name = response.json()['data']['page']['name']
+            websites = response.json()['data']['page']['websites']
+            about = response.json()['data']['page']['about']['text']
+            page_video = response.json()['data']['page']['page_video']['page_video_count']
+        except Exception as e:
+            print('[FB] error ' + e.__str__())
+            name = websites = about = page_video = None
 
-        return dict(
-            username=name, follow=follow, websites=websites, about=about, count_video=page_video
-        )
+        return dict(username=name, follow=follow, websites=websites, about=about, count_video=page_video)
 
+    @staticmethod
+    def get_avatar(id):
+        url = requests.get('https://www.facebook.com/{}'.format(id)).url
+        page_html = requests.get(url).text
+        if 'type\":\"Person\"' not in page_html:
+            avatar = page_html \
+                .split('\"PagesProfilePictureEditMenu\"')[1] \
+                .split('\"uri\":\"')[1].split('\"')[0] \
+                .replace('\\', '')
+        else:
+            avatar = page_html.split('\"image\":\"')[1].split('\"')[0].replace('\\', '')
+        return avatar
 
 # print(FaceBook.get_latest_videos("194149144034882"))
 # 194149144034882
@@ -177,3 +192,5 @@ class FaceBook:
 # data = fb.get_link()
 # print(data)
 # print(fb.get_link())
+# page_html = requests.get('https://www.facebook.com/Kaka/').text
+# print(FaceBook.get_avatar('194149144034882'))

@@ -19,7 +19,7 @@ def get_video_facebook(request):
     data: dict = json.loads(request.body.decode('utf-8'))
     if 'url' not in data.keys():
         return JsonResponse(data={'message': 'URL_REQUIRED'}, status=400)
-    limit = data['limit'] if 'limit' in data.keys() else 50
+    limit = data['limit'] if 'limit' in data.keys() else 10
     cursor = data['cursor'] if 'cursor' in data.keys() else None
 
     # Check existence
@@ -32,10 +32,10 @@ def get_video_facebook(request):
     try:
         response = facebook.crawl(limit, cursor)
         response['srcUrl'] = facebook.get_url()
-        write_to_db(response, cursor)
+        write_to_db(response, limit, cursor)
         return JsonResponse(status=200, data=response)
     except Exception as e:
-        print(e)
+        print('[FB] error' + e.__str__())
         return JsonResponse(status=200, data={'owner': None, 'data': []})
 
 
@@ -123,7 +123,7 @@ def get_insta_media(request):
 
     response = dict(cursor=info['cursor'], hasNextPage=info['has_next_page'], owner=owner, data=posts,
                     srcUrl=insta.get_url())
-    write_to_db(response, cursor)
+    write_to_db(response, limit, cursor)
 
     return JsonResponse(status=200, data=response)
 
@@ -140,11 +140,13 @@ def find_existence(link, cursor=None):
     return None
 
 
-def write_to_db(data, first=None):
+def write_to_db(data, limit, first=None):
     col = DB['media']
     data['_expireAt'] = datetime.now()
+    data['limit'] = limit
     data['first'] = first
     col.insert_one(data)
     del data['_id']
     del data['_expireAt']
+    del data['limit']
     del data['first']

@@ -26,11 +26,9 @@ SERVICE_ID = os.environ.get('SERVICE_ID') or 'VAbc7be24b5576704783b92dd68283da72
 @api_view(['POST'])
 def register(request):
     form = UserRegister(request.POST)
-    if not form.is_valid():
-        return JsonResponse(status=400, data=dict(message='Bad Request'))
-
-    if not validation_phone(form.cleaned_data['phone']):
-        return JsonResponse(status=400, data=dict(message='Wrong phone number format'))
+    validate_form = validate_phone_request_form(form)
+    if validate_form is not None:
+        return validate_form
 
     col = DB['user']
     is_exits = col.find_one({'phone': form.cleaned_data['phone'], 'verified': True})
@@ -70,10 +68,9 @@ def token(request):
 @api_view(['POST'])
 def reset_password(request):
     form = ResetPassword(request.POST)
-    if not form.is_valid():
-        return JsonResponse(status=400, data=dict(message='Bad Request'))
-    if not validation_phone(form.cleaned_data['phone']):
-        return JsonResponse(status=400, data=dict(message='Wrong phone number format'))
+    validate_form = validate_phone_request_form(form)
+    if validate_form is not None:
+        return validate_form
 
     col = DB['user']
     user = col.find_one({'phone': form.cleaned_data['phone'], 'verified': True})
@@ -88,10 +85,9 @@ def reset_password(request):
 @api_view(['POST'])
 def verify_opt_register(request):
     form = VerifyOtpRegister(request.POST)
-    if not form.is_valid():
-        return JsonResponse(status=400, data=dict(message='Bad Request'))
-    if not validation_phone(form.cleaned_data['phone']):
-        return JsonResponse(status=400, data=dict(message='Wrong phone number format'))
+    validate_form = validate_phone_request_form(form)
+    if validate_form is not None:
+        return validate_form
 
     col = DB['user']
     user = col.find_one({'phone': form.cleaned_data['phone'], 'verified': False})
@@ -108,10 +104,9 @@ def verify_opt_register(request):
 @api_view(['POST'])
 def verify_opt_reset_password(request):
     form = VerifyOtpResetPassword(request.POST)
-    if not form.is_valid():
-        return JsonResponse(status=400, data=dict(message='Bad Request'))
-    if not validation_phone(form.cleaned_data['phone']):
-        return JsonResponse(status=400, data=dict(message='Wrong phone number format'))
+    validate_form = validate_phone_request_form(form)
+    if validate_form is not None:
+        return validate_form
 
     col = DB['user']
     user = col.find_one({'phone': form.cleaned_data['phone'], 'verified': True})
@@ -128,16 +123,9 @@ def verify_opt_reset_password(request):
 
 @api_view(['GET'])
 def get_user(request):
-    # Get token
-    try:
-        access_token = request.headers['Authorization'].split(' ')[1]
-    except Exception as e:
-        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
-    is_auth = auth.check_access_token(access_token)
-    if is_auth == -1:
-        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
-    elif is_auth == 0:
-        return JsonResponse(status=401, data={'message': 'Token invalid'})
+    is_auth = check_token(request)
+    if isinstance(is_auth, JsonResponse):
+        return is_auth
 
     col = DB['user']
     user = col.find_one(
@@ -149,16 +137,9 @@ def get_user(request):
 
 @api_view(['PUT'])
 def update_user(request):
-    # Get token
-    try:
-        access_token = request.headers['Authorization'].split(' ')[1]
-    except Exception as e:
-        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
-    is_auth = auth.check_access_token(access_token)
-    if is_auth == -1:
-        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
-    elif is_auth == 0:
-        return JsonResponse(status=401, data={'message': 'Token invalid'})
+    is_auth = check_token(request)
+    if isinstance(is_auth, JsonResponse):
+        return is_auth
 
     form = UserUpdate(request.POST)
     if not form.is_valid():
@@ -187,19 +168,14 @@ def add_to_collection(request):
     request_data: dict = json.loads(request.body.decode('utf-8'))
     if 'url' not in request_data.keys():
         return JsonResponse(data={'message': 'URL_REQUIRED'}, status=400)
+    if 'thumbnail' not in request_data.keys():
+        return JsonResponse(data={'message': 'THUMBNAIL_REQUIRED'}, status=400)
     if 'type' not in request_data.keys():
         return JsonResponse(data={'message': 'TYPE_REQUIRED'}, status=400)
 
-    # Get token
-    try:
-        access_token = request.headers['Authorization'].split(' ')[1]
-    except Exception as e:
-        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
-    is_auth = auth.check_access_token(access_token)
-    if is_auth == -1:
-        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
-    elif is_auth == 0:
-        return JsonResponse(status=401, data={'message': 'Token invalid'})
+    is_auth = check_token(request)
+    if isinstance(is_auth, JsonResponse):
+        return is_auth
 
     col = DB['user']
     update_data = dict(url=request_data['url'], type=request_data['type'])
@@ -210,16 +186,9 @@ def add_to_collection(request):
 
 @api_view(['GET'])
 def get_collection(request):
-    # Get token
-    try:
-        access_token = request.headers['Authorization'].split(' ')[1]
-    except Exception as e:
-        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
-    is_auth = auth.check_access_token(access_token)
-    if is_auth == -1:
-        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
-    elif is_auth == 0:
-        return JsonResponse(status=401, data={'message': 'Token invalid'})
+    is_auth = check_token(request)
+    if isinstance(is_auth, JsonResponse):
+        return is_auth
 
     col = DB['user']
     user = col.find_one({'phone': is_auth.phone, 'verified': True}, {'favorites': 1})
@@ -228,16 +197,9 @@ def get_collection(request):
 
 
 def get_avatar(request):
-    # Get token
-    try:
-        access_token = request.headers['Authorization'].split(' ')[1]
-    except Exception as e:
-        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
-    is_auth = auth.check_access_token(access_token)
-    if is_auth == -1:
-        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
-    elif is_auth == 0:
-        return JsonResponse(status=401, data={'message': 'Token invalid'})
+    is_auth = check_token(request)
+    if isinstance(is_auth, JsonResponse):
+        return is_auth
 
     col = DB['user']
     user = col.find_one({'phone': is_auth.phone, 'verified': True}, {'avatar': 1})
@@ -252,16 +214,9 @@ def get_avatar(request):
 
 
 def upload_avatar(request):
-    # Get token
-    try:
-        access_token = request.headers['Authorization'].split(' ')[1]
-    except Exception as e:
-        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
-    is_auth = auth.check_access_token(access_token)
-    if is_auth == -1:
-        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
-    elif is_auth == 0:
-        return JsonResponse(status=401, data={'message': 'Token invalid'})
+    is_auth = check_token(request)
+    if isinstance(is_auth, JsonResponse):
+        return is_auth
 
     form = AvatarUpload(request.POST, request.FILES)
     if not form.is_valid():
@@ -352,3 +307,23 @@ def validation_phone(input_string):
     regex = re.compile('^(0)[1-9][0-9]{8}$', re.I)
     match = regex.match(str(input_string))
     return bool(match)
+
+
+def validate_phone_request_form(form):
+    if not form.is_valid():
+        return JsonResponse(status=400, data=dict(message='Bad Request'))
+    if not validation_phone(form.cleaned_data['phone']):
+        return JsonResponse(status=400, data=dict(message='Wrong phone number format'))
+
+
+def check_token(request):
+    try:
+        access_token = request.headers['Authorization'].split(' ')[1]
+    except:
+        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
+    is_auth = auth.check_access_token(access_token)
+    if is_auth == -1:
+        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
+    elif is_auth == 0:
+        return JsonResponse(status=401, data={'message': 'Token invalid'})
+    return is_auth
