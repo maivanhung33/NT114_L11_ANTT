@@ -82,7 +82,7 @@ class FaceBook:
                   + ',\"scale\":1,\"useDefaultActor\":false,\"id\":\"{}\"'.format(page_id)
         payload += ',cursor:\"{}\"'.format(cursor) if cursor is not None else ''
         payload += '}&doc_id=5073419716001809'
-
+        print(payload)
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
@@ -91,7 +91,8 @@ class FaceBook:
 
         try:
             response = response.json()
-        except:
+        except Exception as e:
+            raise e
             return {'data': [], 'cursor': None, 'hasNextPage': False}
 
         videos = response['data']['node']['latest_videos']['edges']

@@ -32,7 +32,6 @@ class InstaAPI:
     def __get_user_info(self, user_name):
         url = self.USER_INFO_URL + str(user_name) + r'/?__a=1'
         data = requests.get(url, headers=self.__header, timeout=3)
-        print(data.text)
         return data.json()
 
     def __validate(self):

@@ -20,7 +20,7 @@ def get_video_facebook(request):
     if 'url' not in data.keys():
         return JsonResponse(data={'message': 'URL_REQUIRED'}, status=400)
     limit = data['limit'] if 'limit' in data.keys() else 50
-    cursor = data['cursor'] if 'cursor' in data.keys() else ''
+    cursor = data['cursor'] if 'cursor' in data.keys() else None
 
     # Check existence
     facebook = FaceBook(data['url'])
