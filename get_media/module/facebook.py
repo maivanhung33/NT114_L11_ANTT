@@ -1,5 +1,3 @@
-import json
-
 import requests
 
 
@@ -31,10 +29,10 @@ class FaceBook:
     def get_url(self):
         return self.__url
 
-    def crawl(self):
+    def crawl(self, limit=10, cursor=None):
         if self.__type == 2:
             page_id = self.__get_page_id()
-            return self.__get_latest_videos(page_id)
+            return self.__get_latest_videos(page_id, limit, cursor)
         if self.__type == 1:
             try:
                 video_id = self.__url.split('/videos/')[1].replace('/', '')
@@ -44,7 +42,7 @@ class FaceBook:
                 return {'owner': None, 'data': []}
             video = FaceBook.get_video_info(video_id)
             item = dict(
-                url=FaceBook.get_url_video(video_id),
+                url=FaceBook.get_download_url(video_id),
                 thumbnail=video['thumbnail'],
                 title=video['title'])
             return {'owner': None, 'data': [item]}
@@ -60,49 +58,55 @@ class FaceBook:
             .replace('\\', '')
         return page_id
 
-    def __get_latest_videos(self, page_id):
+    def __get_latest_videos(self, page_id, limit=10, cursor=None):
+        videos = self.get_latest_videos(page_id, limit, cursor)
+
+        owner = FaceBook.get_page_info(page_id)
+        owner['avatar'] = self.__page_avatar
+
+        response = dict(owner=owner, data=[], cursor=videos['cursor'], hasNextPage=videos['hasNextPage'])
+
+        for video in videos['data']:
+            video_url = FaceBook.get_download_url(video['url'].split('/videos/')[1].split('/')[0])
+            video['url'] = video_url
+            response['data'].append(video)
+
+        return response
+
+    @staticmethod
+    def get_latest_videos(page_id, limit=10, cursor=None):
         url = "https://www.facebook.com/api/graphql/"
 
-        payload = 'fb_dtsg=AQEJJzgt5tOo:AQHeQHHfKUaS' + \
-                  '&fb_api_caller_class=RelayModern' + \
-                  '&fb_api_req_friendly_name=CometSinglePageChannelTabRootQuery' + \
-                  '&variables={"UFI2CommentsProvider_commentsKey":"CometSinglePageChannelTabRoot",' + \
-                  '"displayCommentsContextEnableComment":null,"displayCommentsContextIsAdPreview":null,' + \
-                  '"displayCommentsContextIsAggregatedShare":null,"displayCommentsContextIsStorySet":null,' + \
-                  '"displayCommentsFeedbackContext":null,"feedLocation":"PAGE_TIMELINE","feedbackSource":72,' + \
-                  '"focusCommentID":null,"pageID":"{}","scale":4,"useDefaultActor":false'.format(page_id) + \
-                  '}&server_timestamps=true' + \
-                  '&doc_id=3712140348836399'
+        payload = 'variables={' \
+                  + '\"count\":{}'.format(limit) \
+                  + ',\"scale\":1,\"useDefaultActor\":false,\"id\":\"{}\"'.format(page_id)
+        payload += ',cursor:\"{}\"'.format(cursor) if cursor is not None else ''
+        payload += '}&doc_id=5073419716001809'
+
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
         }
 
         response = requests.request("POST", url, headers=headers, data=payload)
-        response = response.text.replace('\r\n', ',').replace(' ', '').replace('\n', '').replace('\r', '').replace('$',
-                                                                                                                   '')
-        response = '{\"content\":[' + response + ']}'
-        json_data = json.loads(response)
 
-        list_latest_videos = []
-        for item in json_data['content']:
-            if 'label' in item.keys() \
-                    and item['label'] == 'CometSinglePageChannelTabRootQuerydeferCometChannelTabLatestVideosCard_page':
-                list_latest_videos = item['data']['latest_videos']['edges']
-                break
+        try:
+            response = response.json()
+        except:
+            return {'data': [], 'cursor': None, 'hasNextPage': False}
 
-        owner = FaceBook.get_page_info(page_id)
-        owner['avatar'] = self.__page_avatar
-        response = dict(owner=owner, data=[])
-        for item in list_latest_videos:
-            video_url = FaceBook.get_url_video(item['node']['channel_tab_thumbnail_renderer']['video']['id'])
-            video = dict(url=video_url,
-                         title=FaceBook.get_video_info(item['node']['channel_tab_thumbnail_renderer']['video']['id'])[
-                             'title'],
-                         thumbnail=item['node']['channel_tab_thumbnail_renderer']['video']['image']['uri'],
-                         publishTime=item['node']['channel_tab_thumbnail_renderer']['video']['publish_time'],
-                         playCount=item['node']['channel_tab_thumbnail_renderer']['video']['play_count'])
+        videos = response['data']['node']['latest_videos']['edges']
+        response = {
+            'data': [],
+            'cursor': response['data']['node']['latest_videos']['page_info']['end_cursor'],
+            'hasNextPage': response['data']['node']['latest_videos']['page_info']['has_next_page'],
+        }
+        for item in videos:
+            video = {'url': item['node']['url'],
+                     'title': item['node']['savable_title']['text'],
+                     'thumbnail': item['node']['VideoThumbnailImage']['uri'],
+                     'playCount': item['node']['play_count'],
+                     'publishTime': item['node']['publish_time']}
             response['data'].append(video)
-
         return response
 
     @staticmethod
@@ -120,7 +124,7 @@ class FaceBook:
                     title=response.json()['data']['video']['title']['text'])
 
     @staticmethod
-    def get_url_video(video_id):
+    def get_download_url(video_id):
         url = "https://www.facebook.com/api/graphql/"
 
         payload = 'fb_dtsg=AQFAz9HPLA8b:AQExNUApkJQU&variables={"id":' \
@@ -160,8 +164,9 @@ class FaceBook:
             username=name, follow=follow, websites=websites, about=about, count_video=page_video
         )
 
-# 194149144034882
 
+# print(FaceBook.get_latest_videos("194149144034882"))
+# 194149144034882
 # print(FaceBook.get_page_info('194149144034882'))
 # print(requests.get('https://www.facebook.com/trollbongda').text)
 # page_html = requests.get('https://www.facebook.com/trollbongda').text

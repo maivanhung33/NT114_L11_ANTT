@@ -19,18 +19,20 @@ def get_video_facebook(request):
     data: dict = json.loads(request.body.decode('utf-8'))
     if 'url' not in data.keys():
         return JsonResponse(data={'message': 'URL_REQUIRED'}, status=400)
+    limit = data['limit'] if 'limit' in data.keys() else 50
+    cursor = data['cursor'] if 'cursor' in data.keys() else ''
 
     # Check existence
     facebook = FaceBook(data['url'])
-    is_existing = find_existence(facebook.get_url())
+    is_existing = find_existence(facebook.get_url(), cursor)
     if is_existing is not None:
         return JsonResponse(status=200, data=is_existing)
 
     # Crawl
     try:
-        response = facebook.crawl()
+        response = facebook.crawl(limit, cursor)
         response['srcUrl'] = facebook.get_url()
-        write_to_db(response)
+        write_to_db(response, cursor)
         return JsonResponse(status=200, data=response)
     except Exception as e:
         print(e)
@@ -110,6 +112,7 @@ def get_insta_media(request):
         post: dict = {
             "shortcode": i['shortcode'] if i['shortcode'] is not None else None,
             "url": url,
+            'thumbnail': i['display_url'],
             "isVideo": i['is_video'],
             "width": i['dimensions']['width'] if i['dimensions']['width'] is not None else None,
             "height": i['dimensions']['height'] if i['dimensions']['height'] is not None else None,
@@ -143,3 +146,5 @@ def write_to_db(data, first=None):
     data['first'] = first
     col.insert_one(data)
     del data['_id']
+    del data['_expireAt']
+    del data['first']
