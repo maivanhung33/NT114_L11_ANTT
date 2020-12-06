@@ -131,7 +131,7 @@ def get_insta_media(request):
 def find_existence(link, limit, cursor=None):
     col = DB['media']
     if cursor is None:
-        query = {'srcUrl': link}
+        query = {'srcUrl': link, 'limit': limit, }
     else:
         query = {'srcUrl': link, 'limit': limit, 'first': cursor}
     is_exit = col.find_one(query, {'_id': 0})
