@@ -24,7 +24,7 @@ def get_video_facebook(request):
 
     # Check existence
     facebook = FaceBook(data['url'])
-    is_existing = find_existence(facebook.get_url(), cursor)
+    is_existing = find_existence(facebook.get_url(), limit, cursor)
     if is_existing is not None:
         return JsonResponse(status=200, data=is_existing)
 
@@ -78,7 +78,7 @@ def get_insta_media(request):
     cursor = data['cursor'] if 'cursor' in data.keys() else ''
 
     insta = InstaAPI(data['url'])
-    is_existing = find_existence(insta.get_url(), cursor)
+    is_existing = find_existence(insta.get_url(), limit, cursor)
     if is_existing is not None:
         return JsonResponse(status=200, data=is_existing)
 
@@ -128,12 +128,12 @@ def get_insta_media(request):
     return JsonResponse(status=200, data=response)
 
 
-def find_existence(link, cursor=None):
+def find_existence(link, limit, cursor=None):
     col = DB['media']
     if cursor is None:
         query = {'srcUrl': link}
     else:
-        query = {'srcUrl': link, 'first': cursor}
+        query = {'srcUrl': link, 'limit': limit, 'first': cursor}
     is_exit = col.find_one(query, {'_id': 0})
     if is_exit is not None:
         return is_exit
