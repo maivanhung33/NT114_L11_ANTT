@@ -22,16 +22,16 @@ class InstaAPI:
         url = self.BASE_URL + '?query_hash=e769aa130647d2354c40ea6a439bfc08&variables={\"id":\"'
         url += str(user_id) + '\",\"first\":{},\"after\":\"'.format(limit)
         url += str(cursor) + '\"}'
-        return requests.get(url, headers=self.__header, timeout=3).json()
+        return requests.get(url, headers=self.__header).json()
 
     def __get_post(self, short_code):
         url = self.BASE_URL + '?query_hash=eaffee8f3c9c089c9904a5915a898814&variables={\"shortcode\":\"'
         url += str(short_code) + '\"}'
-        return requests.get(url, headers=self.__header, timeout=3).json()
+        return requests.get(url, headers=self.__header).json()
 
     def __get_user_info(self, user_name):
         url = self.USER_INFO_URL + str(user_name) + r'/?__a=1'
-        data = requests.get(url, headers=self.__header, timeout=3)
+        data = requests.get(url, headers=self.__header)
         return data.json()
 
     def __validate(self):
