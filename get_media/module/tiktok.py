@@ -2,7 +2,7 @@ import json
 
 import requests
 
-from TikTokApi import TikTokApi
+
 class TikTok:
     HEADERS = {
         'Connection': 'keep-alive',
@@ -46,7 +46,7 @@ class TikTok:
             'Cookie': 'tt_webid={}; tt_webid_v2={};'.format(web_id, web_id),
             'Range': 'bytes=0-'
         }
-        return
+        self.__video_id = web_id
 
     def get_link(self):
         if self.__validate():
@@ -61,10 +61,12 @@ class TikTok:
                 avatar=author['avatarMedium']
             )
 
-            return dict(url=response.text.split('\"playAddr\":\"')[1].split('\"')[0].replace(r'\u0026', '&'),
-                        thumbnail=response.text.split('\"originCover\":\"')[1].split('\"')[0].replace(r'\u0026', '&'),
-                        headers=self.__headers,
-                        owner=owner)
+            return dict(
+                id=self.__video_id,
+                url=response.text.split('\"playAddr\":\"')[1].split('\"')[0].replace(r'\u0026', '&'),
+                thumbnail=response.text.split('\"originCover\":\"')[1].split('\"')[0].replace(r'\u0026', '&'),
+                headers=self.__headers,
+                owner=owner)
         return None
 
 # tiktok = TikTok("https://www.tiktok.com/@khang0924046415/video/6888171864833789186")

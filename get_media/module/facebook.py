@@ -42,6 +42,7 @@ class FaceBook:
                 owner = FaceBook.get_owner_info(video['owner_id'])
                 owner['avatar'] = self.get_avatar(video['owner_id'])
                 item = dict(
+                    id=video_id,
                     url=FaceBook.get_download_url(video_id),
                     thumbnail=video['thumbnail'],
                     title=video['title'])
@@ -104,11 +105,13 @@ class FaceBook:
             'hasNextPage': response['data']['node']['latest_videos']['page_info']['has_next_page'],
         }
         for item in videos:
-            video = {'url': item['node']['url'],
-                     'title': item['node']['savable_title']['text'],
-                     'thumbnail': item['node']['VideoThumbnailImage']['uri'],
-                     'playCount': item['node']['play_count'],
-                     'publishTime': item['node']['publish_time']}
+            video = {
+                'id': item['node']['id'],
+                'url': item['node']['url'],
+                'title': item['node']['savable_title']['text'],
+                'thumbnail': item['node']['VideoThumbnailImage']['uri'],
+                'playCount': item['node']['play_count'],
+                'publishTime': item['node']['publish_time']}
             response['data'].append(video)
         return response
 

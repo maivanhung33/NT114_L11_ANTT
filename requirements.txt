@@ -8,7 +8,4 @@ pymongo
 dnspython
 django-cors-headers
 pyjwt
-TikTokApi
 twilio
-pyppeteer
-pyppeteer-stealth

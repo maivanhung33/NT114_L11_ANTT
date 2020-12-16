@@ -5,6 +5,8 @@ import requests
 from django.http import JsonResponse, HttpResponse
 from rest_framework.decorators import api_view
 
+from get_media.model.user import User
+from get_media.module import auth
 from get_media.module.database import database
 from get_media.module.facebook import FaceBook
 from get_media.module.instagram import InstaAPI
@@ -15,6 +17,7 @@ DB = database()
 
 @api_view(['POST'])
 def get_video_facebook(request):
+    is_auth = check_token(request)
     # Validate request
     data: dict = json.loads(request.body.decode('utf-8'))
     if 'url' not in data.keys():
@@ -23,6 +26,7 @@ def get_video_facebook(request):
     cursor = data['cursor'] if 'cursor' in data.keys() else None
 
     # Check existence
+    write_log_crawl(data['url'], is_auth)
     facebook = FaceBook(data['url'])
     is_existing = find_existence(facebook.get_url(), limit, cursor)
     if is_existing is not None:
@@ -32,7 +36,7 @@ def get_video_facebook(request):
     try:
         response = facebook.crawl(limit, cursor)
         response['srcUrl'] = facebook.get_url()
-        write_to_db(response, limit, cursor)
+        write_data(response, limit, cursor)
         return JsonResponse(status=200, data=response)
     except Exception as e:
         print('[FB] error' + e.__str__())
@@ -58,9 +62,11 @@ def get_video_tiktok(request):
 
 @api_view(['GET'])
 def get_video_tiktok_info(request):
+    is_auth = check_token(request)
     if 'url' not in request.GET.keys():
         return JsonResponse(data={'message': 'URL_REQUIRED'}, status=400)
     try:
+        write_log_crawl(request.GET['url'], is_auth)
         tiktok = TikTok(request.GET['url'])
         data = tiktok.get_link()
         return JsonResponse(status=200, data=data)
@@ -71,12 +77,15 @@ def get_video_tiktok_info(request):
 
 @api_view(['POST'])
 def get_insta_media(request):
+    is_auth = check_token(request)
+
     data: dict = json.loads(request.body.decode('utf-8'))
     if 'url' not in data.keys():
         return JsonResponse(data={'message': 'URL_REQUIRED'}, status=400)
     limit = data['limit'] if 'limit' in data.keys() else 50
     cursor = data['cursor'] if 'cursor' in data.keys() else ''
 
+    write_log_crawl(data['url'], is_auth)
     insta = InstaAPI(data['url'])
     is_existing = find_existence(insta.get_url(), limit, cursor)
     if is_existing is not None:
@@ -110,7 +119,7 @@ def get_insta_media(request):
         elif i['is_video'] is False:
             url = i['display_url']
         post: dict = {
-            "shortcode": i['shortcode'] if i['shortcode'] is not None else None,
+            "id": i['shortcode'] if i['shortcode'] is not None else None,
             "url": url,
             'thumbnail': i['display_url'],
             "isVideo": i['is_video'],
@@ -123,7 +132,7 @@ def get_insta_media(request):
 
     response = dict(cursor=info['cursor'], hasNextPage=info['has_next_page'], owner=owner, data=posts,
                     srcUrl=insta.get_url())
-    write_to_db(response, limit, cursor)
+    write_data(response, limit, cursor)
 
     return JsonResponse(status=200, data=response)
 
@@ -140,13 +149,31 @@ def find_existence(link, limit, cursor=None):
     return None
 
 
-def write_to_db(data, limit, first=None):
+def write_data(data, limit, first=None):
     col = DB['media']
     data['_expireAt'] = datetime.now()
     data['limit'] = limit
     data['first'] = first
     col.insert_one(data)
+
     del data['_id']
     del data['_expireAt']
     del data['limit']
     del data['first']
+
+
+def write_log_crawl(url, user: User = None):
+    col = DB['log']
+    log = {'url': url, 'time': datetime.now(), 'type': 'crawl', 'user': user}
+    col.insert_one(log)
+
+
+def check_token(request):
+    try:
+        access_token = request.headers['Authorization'].split(' ')[1]
+        is_auth = auth.check_access_token(access_token)
+        if is_auth == -1 or is_auth == 0:
+            return
+        return is_auth
+    except:
+        return

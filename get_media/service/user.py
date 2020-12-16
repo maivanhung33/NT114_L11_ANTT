@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from datetime import datetime
 from time import time
 
 import bcrypt
@@ -180,7 +181,6 @@ def add_to_collection(request):
     col = DB['user']
     update_data = dict(url=request_data['url'], type=request_data['type'])
     col.update_one({'phone': is_auth.phone, 'verified': True}, {'$push': {'favorites': update_data}})
-
     return JsonResponse(status=200, data={'message': 'Success'})
 
 
@@ -327,3 +327,15 @@ def check_token(request):
     elif is_auth == 0:
         return JsonResponse(status=401, data={'message': 'Token invalid'})
     return is_auth
+
+
+def write_log_collection(id, srcUrl, platform, user=None):
+    col = DB['log']
+    log = {
+        'id': id,
+        'srcUrl': srcUrl,
+        'platform': platform,
+        'time': datetime.now(),
+        'type': 'collection',
+        'user': user}
+    col.insert_one(log)
