@@ -190,13 +190,13 @@ def get_user_collection(is_auth):
 def check_added(is_auth, response):
     if is_auth is None:
         for item in response['data']:
-            item['added'] = False
+            item['isAdded'] = False
     else:
         collection = get_user_collection(is_auth)
         for item in response['data']:
-            item['added'] = False
+            item['isAdded'] = False
             for item_1 in collection:
                 if item['id'] == item_1['id']:
-                    item['added'] = True
+                    item['isAdded'] = True
                     break
     return response
