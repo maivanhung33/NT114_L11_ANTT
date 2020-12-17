@@ -67,6 +67,7 @@ def get_video_tiktok_info(request):
         write_log_crawl(request.GET['url'], is_auth)
         tiktok = TikTok(request.GET['url'])
         data = tiktok.get_link()
+        check_added(is_auth, data, 'tiktok')
         return JsonResponse(status=200, data=data)
     except Exception as e:
         print(e)
@@ -188,6 +189,17 @@ def get_user_collection(is_auth):
 
 
 def check_added(is_auth, response, platform):
+    if platform == 'tiktok':
+        if is_auth is None:
+            response['isAdded'] = False
+        else:
+            collection = get_user_collection(is_auth)
+            response['isAdded'] = False
+            for item_1 in collection:
+                if response['id'] == item_1['id'] and platform == item_1['platform']:
+                    response['isAdded'] = True
+        return response
+
     if is_auth is None:
         for item in response['data']:
             item['isAdded'] = False
@@ -196,7 +208,7 @@ def check_added(is_auth, response, platform):
         for item in response['data']:
             item['isAdded'] = False
             for item_1 in collection:
-                if item['id'] == item_1['id'] and item['platform'] == platform:
+                if item['id'] == item_1['id'] and item['platform'] == item_1['platform']:
                     item['isAdded'] = True
                     break
     return response
