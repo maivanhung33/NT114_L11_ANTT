@@ -10,6 +10,7 @@ class InstaAPI:
     USER_INFO_URL = "https://www.instagram.com/"
 
     def __init__(self, url):
+        self.__origin_url = url
         self.__url = url
         self.__type = ''
         if self.__validate():
@@ -91,7 +92,7 @@ class InstaAPI:
         return None
 
     def get_url(self):
-        return self.__url
+        return self.__origin_url
 
 # insta = InstaAPI('https://www.instagram.com/')
 # print(insta.get())

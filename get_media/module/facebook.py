@@ -43,13 +43,15 @@ class FaceBook:
                 owner['avatar'] = self.get_avatar(video['owner_id'])
                 item = dict(
                     id=video_id,
+                    source=self.get_url(),
                     url=FaceBook.get_download_url(video_id),
                     thumbnail=video['thumbnail'],
                     title=video['title'])
                 return {'owner': owner, 'data': [item]}
             except Exception as e:
-                print('[FB] error ' + e.__str__())
-                return {'owner': None, 'data': []}
+                raise e
+                # print('[FB] error ' + e.__str__())
+                # return {'owner': None, 'data': []}
 
     def __get_page_id(self):
         page_html = requests.get(self.__url).text
@@ -68,7 +70,7 @@ class FaceBook:
             response = dict(owner=owner, data=[], cursor=videos['cursor'], hasNextPage=videos['hasNextPage'])
 
             for video in videos['data']:
-                video_url = FaceBook.get_download_url(video['url'].split('/videos/')[1].split('/')[0])
+                video_url = FaceBook.get_download_url(video['source'].split('/videos/')[1].split('/')[0])
                 video['url'] = video_url
                 response['data'].append(video)
 
@@ -107,7 +109,7 @@ class FaceBook:
         for item in videos:
             video = {
                 'id': item['node']['id'],
-                'url': item['node']['url'],
+                'source': item['node']['url'],
                 'title': item['node']['savable_title']['text'],
                 'thumbnail': item['node']['VideoThumbnailImage']['uri'],
                 'playCount': item['node']['play_count'],
@@ -120,8 +122,7 @@ class FaceBook:
         url = "https://www.facebook.com/api/graphql/"
 
         payload = 'fb_dtsg=AQFAz9HPLA8b:AQExNUApkJQU&variables={"id":\"' + video_id + '\"}&doc_id=3505988849454782'
-        headers = {
-            'Content-Type': 'application/x-www-form-urlencoded'}
+        headers = {'Content-Type': 'application/x-www-form-urlencoded'}
 
         response = requests.request("POST", url, headers=headers, data=payload)
         return dict(thumbnail=response.json()['data']['video']['image']['uri'],
@@ -147,9 +148,7 @@ class FaceBook:
         url = "https://www.facebook.com/api/graphql/"
 
         payload = 'variables={"pageID":\"' + page_id + '\"}&doc_id=1766735040109284'
-        headers = {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        }
+        headers = {'Content-Type': 'application/x-www-form-urlencoded'}
 
         response = requests.request("POST", url, headers=headers, data=payload)
         follow = response.json()['data']['page']['video_page_social_context']['sentence']['text']
@@ -173,16 +172,19 @@ class FaceBook:
 
     @staticmethod
     def get_avatar(id):
-        url = requests.get('https://www.facebook.com/{}'.format(id)).url
-        page_html = requests.get(url).text
-        if 'type\":\"Person\"' not in page_html:
-            avatar = page_html \
-                .split('\"PagesProfilePictureEditMenu\"')[1] \
-                .split('\"uri\":\"')[1].split('\"')[0] \
-                .replace('\\', '')
-        else:
-            avatar = page_html.split('\"image\":\"')[1].split('\"')[0].replace('\\', '')
-        return avatar
+        try:
+            url = requests.get('https://www.facebook.com/{}'.format(id)).url
+            page_html = requests.get(url).text
+            if 'type\":\"Person\"' not in page_html:
+                avatar = page_html \
+                    .split('\"PagesProfilePictureEditMenu\"')[1] \
+                    .split('\"uri\":\"')[1].split('\"')[0] \
+                    .replace('\\', '')
+            else:
+                avatar = page_html.split('\"image\":\"')[1].split('\"')[0].replace('\\', '')
+            return avatar
+        except:
+            return None
 
 # print(FaceBook.get_latest_videos("194149144034882"))
 # 194149144034882

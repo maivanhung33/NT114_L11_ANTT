@@ -30,17 +30,15 @@ def get_video_facebook(request):
     facebook = FaceBook(data['url'])
     is_existing = find_existence(facebook.get_url(), limit, cursor)
     if is_existing is not None:
+        is_existing = check_added(is_auth, is_existing)
         return JsonResponse(status=200, data=is_existing)
 
     # Crawl
-    try:
-        response = facebook.crawl(limit, cursor)
-        response['srcUrl'] = facebook.get_url()
-        write_data(response, limit, cursor)
-        return JsonResponse(status=200, data=response)
-    except Exception as e:
-        print('[FB] error' + e.__str__())
-        return JsonResponse(status=200, data={'owner': None, 'data': []})
+    response = facebook.crawl(limit, cursor)
+    response['srcUrl'] = facebook.get_url()
+    write_data(response, limit, cursor)
+    response = check_added(is_auth, response)
+    return JsonResponse(status=200, data=response)
 
 
 @api_view(['GET'])
@@ -89,6 +87,7 @@ def get_insta_media(request):
     insta = InstaAPI(data['url'])
     is_existing = find_existence(insta.get_url(), limit, cursor)
     if is_existing is not None:
+        is_existing = check_added(is_auth, is_existing)
         return JsonResponse(status=200, data=is_existing)
 
     info = insta.crawl(limit, cursor)
@@ -120,6 +119,7 @@ def get_insta_media(request):
             url = i['display_url']
         post: dict = {
             "id": i['shortcode'] if i['shortcode'] is not None else None,
+            "source": 'https://www.instagram.com/p/{}/'.format(i['shortcode']) if i['shortcode'] is not None else None,
             "url": url,
             'thumbnail': i['display_url'],
             "isVideo": i['is_video'],
@@ -133,6 +133,7 @@ def get_insta_media(request):
     response = dict(cursor=info['cursor'], hasNextPage=info['has_next_page'], owner=owner, data=posts,
                     srcUrl=insta.get_url())
     write_data(response, limit, cursor)
+    response = check_added(is_auth, response)
 
     return JsonResponse(status=200, data=response)
 
@@ -164,7 +165,7 @@ def write_data(data, limit, first=None):
 
 def write_log_crawl(url, user: User = None):
     col = DB['log']
-    log = {'url': url, 'time': datetime.now(), 'type': 'crawl', 'user': user}
+    log = {'url': url, 'time': datetime.now(), 'type': 'crawl', 'user': user.__dict__ if user is not None else user}
     col.insert_one(log)
 
 
@@ -177,3 +178,25 @@ def check_token(request):
         return is_auth
     except:
         return
+
+
+def get_user_collection(is_auth):
+    col = DB['user']
+    user = col.find_one({'phone': is_auth.phone, 'verified': True}, {'favorites': 1})
+
+    return user['favorites']
+
+
+def check_added(is_auth, response):
+    if is_auth is None:
+        for item in response['data']:
+            item['added'] = False
+    else:
+        collection = get_user_collection(is_auth)
+        for item in response['data']:
+            item['added'] = False
+            for item_1 in collection:
+                if item['id'] == item_1['id']:
+                    item['added'] = True
+                    break
+    return response

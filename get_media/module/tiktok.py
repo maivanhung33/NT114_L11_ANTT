@@ -63,6 +63,7 @@ class TikTok:
 
             return dict(
                 id=self.__video_id,
+                source=self.__url,
                 url=response.text.split('\"playAddr\":\"')[1].split('\"')[0].replace(r'\u0026', '&'),
                 thumbnail=response.text.split('\"originCover\":\"')[1].split('\"')[0].replace(r'\u0026', '&'),
                 headers=self.__headers,

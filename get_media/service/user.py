@@ -166,21 +166,64 @@ def avatar(request):
 
 @api_view(['POST'])
 def add_to_collection(request):
-    request_data: dict = json.loads(request.body.decode('utf-8'))
+    try:
+        request_data: dict = json.loads(request.body.decode('utf-8'))
+    except:
+        return JsonResponse(data={'message': 'BAD_REQUEST'}, status=400)
     if 'url' not in request_data.keys():
         return JsonResponse(data={'message': 'URL_REQUIRED'}, status=400)
     if 'thumbnail' not in request_data.keys():
         return JsonResponse(data={'message': 'THUMBNAIL_REQUIRED'}, status=400)
     if 'type' not in request_data.keys():
         return JsonResponse(data={'message': 'TYPE_REQUIRED'}, status=400)
+    if 'platform' not in request_data.keys():
+        return JsonResponse(data={'message': 'PLATFORM_REQUIRED'}, status=400)
+    if 'source' not in request_data.keys():
+        return JsonResponse(data={'message': 'SOURCE_REQUIRED'}, status=400)
+    if 'id' not in request_data.keys():
+        return JsonResponse(data={'message': 'ID_REQUIRED'}, status=400)
 
     is_auth = check_token(request)
     if isinstance(is_auth, JsonResponse):
         return is_auth
 
     col = DB['user']
-    update_data = dict(url=request_data['url'], type=request_data['type'])
+    update_data = dict(
+        id=request_data['id'],
+        url=request_data['url'],
+        type=request_data['type'],
+        thumbnail=request_data['thumbnail'],
+        platform=request_data['platform'],
+        source=request_data['source']
+    )
     col.update_one({'phone': is_auth.phone, 'verified': True}, {'$push': {'favorites': update_data}})
+    write_log_collection(update_data, is_auth)
+    return JsonResponse(status=200, data={'message': 'Success'})
+
+
+@api_view(['POST'])
+def remove_from_collection(request):
+    try:
+        request_data: dict = json.loads(request.body.decode('utf-8'))
+    except:
+        return JsonResponse(data={'message': 'BAD_REQUEST'}, status=400)
+
+    if 'id' not in request_data.keys():
+        return JsonResponse(data={'message': 'ID_REQUIRED'}, status=400)
+
+    is_auth = check_token(request)
+    if isinstance(is_auth, JsonResponse):
+        return is_auth
+
+    col = DB['user']
+    collection = get_user_collection(is_auth)
+    clone_col = []
+    for item in collection:
+        if item['id'] == request_data['id']:
+            continue
+        clone_col.append(item)
+
+    col.update_one({'phone': is_auth.phone, 'verified': True}, {'$set': {'favorites': clone_col}})
     return JsonResponse(status=200, data={'message': 'Success'})
 
 
@@ -329,13 +372,15 @@ def check_token(request):
     return is_auth
 
 
-def write_log_collection(id, srcUrl, platform, user=None):
+def write_log_collection(data, user=None):
     col = DB['log']
-    log = {
-        'id': id,
-        'srcUrl': srcUrl,
-        'platform': platform,
-        'time': datetime.now(),
-        'type': 'collection',
-        'user': user}
-    col.insert_one(log)
+    data['time'] = datetime.now()
+    data['type'] = 'collection'
+    data['user'] = user.__dict__ if user is not None else None
+    col.insert_one(data)
+
+
+def get_user_collection(is_auth):
+    col = DB['user']
+    user = col.find_one({'phone': is_auth.phone, 'verified': True}, {'favorites': 1})
+    return user['favorites']
