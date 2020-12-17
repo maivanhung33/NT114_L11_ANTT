@@ -208,7 +208,7 @@ def check_added(is_auth, response, platform):
         for item in response['data']:
             item['isAdded'] = False
             for item_1 in collection:
-                if item['id'] == item_1['id'] and item['platform'] == item_1['platform']:
+                if item['id'] == item_1['id'] and platform == item_1['platform']:
                     item['isAdded'] = True
                     break
     return response
