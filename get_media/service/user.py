@@ -196,6 +196,9 @@ def add_to_collection(request):
         platform=request_data['platform'],
         source=request_data['source']
     )
+    collection = get_user_collection(is_auth)
+    if check_added(collection, request_data['id'], request_data['platform']):
+        return JsonResponse(status=422, data={'message': 'Already exist'})
     col.update_one({'phone': is_auth.phone, 'verified': True}, {'$push': {'favorites': update_data}})
     write_log_collection(update_data, is_auth)
     return JsonResponse(status=200, data={'message': 'Success'})
@@ -384,3 +387,10 @@ def get_user_collection(is_auth):
     col = DB['user']
     user = col.find_one({'phone': is_auth.phone, 'verified': True}, {'favorites': 1})
     return user['favorites']
+
+
+def check_added(collection, id, platform):
+    for item in collection:
+        if item['id'] == id and item['platform'] == platform:
+            return True
+    return False

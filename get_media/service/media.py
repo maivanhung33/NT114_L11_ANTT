@@ -30,14 +30,14 @@ def get_video_facebook(request):
     facebook = FaceBook(data['url'])
     is_existing = find_existence(facebook.get_url(), limit, cursor)
     if is_existing is not None:
-        is_existing = check_added(is_auth, is_existing)
+        is_existing = check_added(is_auth, is_existing, 'facebook')
         return JsonResponse(status=200, data=is_existing)
 
     # Crawl
     response = facebook.crawl(limit, cursor)
     response['srcUrl'] = facebook.get_url()
     write_data(response, limit, cursor)
-    response = check_added(is_auth, response)
+    response = check_added(is_auth, response, 'facebook')
     return JsonResponse(status=200, data=response)
 
 
@@ -87,7 +87,7 @@ def get_insta_media(request):
     insta = InstaAPI(data['url'])
     is_existing = find_existence(insta.get_url(), limit, cursor)
     if is_existing is not None:
-        is_existing = check_added(is_auth, is_existing)
+        is_existing = check_added(is_auth, is_existing, 'instagram')
         return JsonResponse(status=200, data=is_existing)
 
     info = insta.crawl(limit, cursor)
@@ -133,7 +133,7 @@ def get_insta_media(request):
     response = dict(cursor=info['cursor'], hasNextPage=info['has_next_page'], owner=owner, data=posts,
                     srcUrl=insta.get_url())
     write_data(response, limit, cursor)
-    response = check_added(is_auth, response)
+    response = check_added(is_auth, response, 'instagram')
 
     return JsonResponse(status=200, data=response)
 
@@ -187,7 +187,7 @@ def get_user_collection(is_auth):
     return user['favorites']
 
 
-def check_added(is_auth, response):
+def check_added(is_auth, response, platform):
     if is_auth is None:
         for item in response['data']:
             item['isAdded'] = False
@@ -196,7 +196,7 @@ def check_added(is_auth, response):
         for item in response['data']:
             item['isAdded'] = False
             for item_1 in collection:
-                if item['id'] == item_1['id']:
+                if item['id'] == item_1['id'] and item['platform'] == platform:
                     item['isAdded'] = True
                     break
     return response
