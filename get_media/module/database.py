@@ -21,7 +21,6 @@ def database() -> MongoClient:
     auth_mechanism = os.environ.get('MONGO_AUTH_MECHANISM') or 'SCRAM-SHA-256'
 
     env = os.environ.get('ENV') or 'local'
-
     # For local
     if env == 'local':
         client = MongoClient(host=host, port=port, username=username, password=password, maxPoolSize=max_pool_size,

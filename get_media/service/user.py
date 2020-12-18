@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import uuid
 from datetime import datetime
 from time import time
 
@@ -8,6 +9,7 @@ import bcrypt
 from django.core.files.storage import FileSystemStorage
 from django.http import HttpResponse, HttpResponseNotFound
 from django.http import JsonResponse
+from pymongo import errors
 from rest_framework.decorators import api_view
 from twilio.rest import Client
 
@@ -39,12 +41,12 @@ def register(request):
                     password=bcrypt.hashpw(form.cleaned_data['password'].encode(), bcrypt.gensalt()).decode(),
                     lastname=form.cleaned_data['lastname'],
                     firstname=form.cleaned_data['firstname'],
-                    birthday=form.cleaned_data['birthday'],
-                    favorites=[])
+                    birthday=form.cleaned_data['birthday'])
 
     col.update({'phone': form.cleaned_data['phone']}, {'$set': new_user.__dict__}, upsert=True)
 
     send_otp(form.cleaned_data['phone'])
+    write_log({'user': form.cleaned_data['phone']}, 'register')
 
     return JsonResponse(status=201,
                         data={'status': 'success', 'message': 'Waiting for verifying your phone'})
@@ -79,6 +81,7 @@ def reset_password(request):
         return JsonResponse(status=404, data=dict(message='User not exits'))
 
     send_otp(form.cleaned_data['phone'])
+    write_log({'user': form.cleaned_data['phone']}, 'reset_password')
 
     return JsonResponse(status=200, data={'status': 'pending', 'message': 'waiting confirm otp'})
 
@@ -98,7 +101,9 @@ def verify_opt_register(request):
     if verify_otp(phone=form.cleaned_data['phone'], otp=form.cleaned_data['otp']) == 'approved':
         update_verified = {'$set': {'verified': True}}
         col.update_one({'phone': form.cleaned_data['phone']}, update_verified)
+        write_log({'user': form.cleaned_data['phone']}, 'register_success')
         return JsonResponse(status=200, data={'status': 'success', 'message': 'Verified'})
+
     return JsonResponse(status=404, data={'status': 'fail', 'message': 'Otp incorrect'})
 
 
@@ -118,6 +123,7 @@ def verify_opt_reset_password(request):
         update_password = {
             '$set': {'password': bcrypt.hashpw(form.cleaned_data['password'].encode(), bcrypt.gensalt()).decode()}}
         col.update_one({'phone': form.cleaned_data['phone']}, update_password)
+        write_log({'user': form.cleaned_data['phone']}, 'reset_password_success')
         return JsonResponse(status=200, data={'status': 'success', 'message': 'Password has been updated'})
     return JsonResponse(status=404, data={'status': 'fail', 'message': 'Otp incorrect'})
 
@@ -131,7 +137,7 @@ def get_user(request):
     col = DB['user']
     user = col.find_one(
         {'phone': is_auth.phone, 'verified': True},
-        {'_id': 0, 'password': 0, 'favorites': 0})
+        {'_id': 0, 'password': 0})
 
     return JsonResponse(status=200, data=user)
 
@@ -164,82 +170,35 @@ def avatar(request):
         return upload_avatar(request)
 
 
-@api_view(['POST'])
-def add_to_collection(request):
-    try:
-        request_data: dict = json.loads(request.body.decode('utf-8'))
-    except:
-        return JsonResponse(data={'message': 'BAD_REQUEST'}, status=400)
-    if 'url' not in request_data.keys():
-        return JsonResponse(data={'message': 'URL_REQUIRED'}, status=400)
-    if 'thumbnail' not in request_data.keys():
-        return JsonResponse(data={'message': 'THUMBNAIL_REQUIRED'}, status=400)
-    if 'type' not in request_data.keys():
-        return JsonResponse(data={'message': 'TYPE_REQUIRED'}, status=400)
-    if 'platform' not in request_data.keys():
-        return JsonResponse(data={'message': 'PLATFORM_REQUIRED'}, status=400)
-    if 'source' not in request_data.keys():
-        return JsonResponse(data={'message': 'SOURCE_REQUIRED'}, status=400)
-    if 'id' not in request_data.keys():
-        return JsonResponse(data={'message': 'ID_REQUIRED'}, status=400)
+@api_view(['GET', 'POST'])
+def collections(request):
+    if request.method == 'GET':
+        return list_collection(request)
+    elif request.method == 'POST':
+        return create_collection(request)
 
+
+@api_view(['GET', 'DELETE', 'POST'])
+def collection(request, id):
+    if request.method == 'GET':
+        return get_collection(request, id)
+    elif request.method == 'DELETE':
+        return remove_collection(request, id)
+    elif request.method == 'POST':
+        return add_to_collection(request, id)
+
+
+@api_view(['DELETE'])
+def remove_collection_item(request, col_id, item_id):
     is_auth = check_token(request)
     if isinstance(is_auth, JsonResponse):
         return is_auth
 
-    col = DB['user']
-    update_data = dict(
-        id=request_data['id'],
-        url=request_data['url'],
-        type=request_data['type'],
-        thumbnail=request_data['thumbnail'],
-        platform=request_data['platform'],
-        source=request_data['source']
-    )
-    collection = get_user_collection(is_auth)
-    if check_added(collection, request_data['id'], request_data['platform']):
-        return JsonResponse(status=422, data={'message': 'Already exist'})
-    col.update_one({'phone': is_auth.phone, 'verified': True}, {'$push': {'favorites': update_data}})
-    write_log_collection(update_data, is_auth)
+    col = DB['collection_item']
+    col.delete_one({'collection_id': col_id, 'id': item_id})
+    write_log({'collection_id': col_id, 'id': item_id}, 'remove_item', is_auth)
+
     return JsonResponse(status=200, data={'message': 'Success'})
-
-
-@api_view(['POST'])
-def remove_from_collection(request):
-    try:
-        request_data: dict = json.loads(request.body.decode('utf-8'))
-    except:
-        return JsonResponse(data={'message': 'BAD_REQUEST'}, status=400)
-
-    if 'id' not in request_data.keys():
-        return JsonResponse(data={'message': 'ID_REQUIRED'}, status=400)
-
-    is_auth = check_token(request)
-    if isinstance(is_auth, JsonResponse):
-        return is_auth
-
-    col = DB['user']
-    collection = get_user_collection(is_auth)
-    clone_col = []
-    for item in collection:
-        if item['id'] == request_data['id']:
-            continue
-        clone_col.append(item)
-
-    col.update_one({'phone': is_auth.phone, 'verified': True}, {'$set': {'favorites': clone_col}})
-    return JsonResponse(status=200, data={'message': 'Success'})
-
-
-@api_view(['GET'])
-def get_collection(request):
-    is_auth = check_token(request)
-    if isinstance(is_auth, JsonResponse):
-        return is_auth
-
-    col = DB['user']
-    user = col.find_one({'phone': is_auth.phone, 'verified': True}, {'favorites': 1})
-
-    return JsonResponse(status=200, data={'count': len(user['favorites']), 'favorites': user['favorites']})
 
 
 def get_avatar(request):
@@ -299,6 +258,7 @@ def login(data):
                                                              email=user['email'],
                                                              password=user['password']).decode(),
                     expireAt=int(time()) + 3600)
+    write_log({'user': user['phone']}, 'login')
     return JsonResponse(status=200,
                         data=response)
 
@@ -362,6 +322,119 @@ def validate_phone_request_form(form):
         return JsonResponse(status=400, data=dict(message='Wrong phone number format'))
 
 
+def get_collection(request, id):
+    is_auth = check_token(request)
+    if isinstance(is_auth, JsonResponse):
+        return is_auth
+
+    col = DB['collection']
+    user_collection = col.find_one({'_id': id})
+    if user_collection is None:
+        return JsonResponse(status=404, data={'message': 'Not found'})
+
+    col = DB['collection_item']
+    collections_items = list(col.find({'collection_id': id}, {'_id': 0}))
+    return JsonResponse(status=200, data={'count': len(collections_items), 'items': collections_items})
+
+
+def list_collection(request):
+    is_auth = check_token(request)
+    if isinstance(is_auth, JsonResponse):
+        return is_auth
+
+    col = DB['collection']
+    user_collections = list(col.find({'owner_phone': is_auth.phone}))
+    response = []
+    for item in user_collections:
+        response.append({'id': item['_id'], 'name': item['name']})
+    return JsonResponse(status=200, data={'count': len(response), 'collections': response})
+
+
+def create_collection(request):
+    is_auth = check_token(request)
+    if isinstance(is_auth, JsonResponse):
+        return is_auth
+
+    try:
+        request_data: dict = json.loads(request.body.decode('utf-8'))
+    except:
+        return JsonResponse(data={'message': 'BAD_REQUEST'}, status=400)
+
+    if 'name' not in request_data.keys():
+        return JsonResponse(data={'message': 'NAME_REQUIRED'}, status=400)
+
+    try:
+        col = DB['collection']
+        data = {'_id': uuid.uuid4().__str__(), 'owner_phone': is_auth.phone, 'name': request_data['name']}
+        col.insert_one(data)
+        write_log(data, 'create_collection', is_auth)
+        return JsonResponse(status=200, data={'message': 'Success'})
+    except errors.DuplicateKeyError:
+        return JsonResponse(status=422, data={'message': 'Already exist'})
+
+
+def remove_collection(request, id):
+    is_auth = check_token(request)
+    if isinstance(is_auth, JsonResponse):
+        return is_auth
+
+    col = DB['collection']
+    collection = col.find_one({'_id': id})
+    if collection is None:
+        return JsonResponse(status=404, data={'message': 'Not found'})
+
+    col = DB['collection']
+    col.delete_one({'_id': id})
+    write_log({}, 'remove_collection', is_auth)
+
+    return JsonResponse(status=200, data={'message': 'Success'})
+
+
+def add_to_collection(request, id):
+    try:
+        request_data: dict = json.loads(request.body.decode('utf-8'))
+    except:
+        return JsonResponse(data={'message': 'BAD_REQUEST'}, status=400)
+    if 'url' not in request_data.keys():
+        return JsonResponse(data={'message': 'URL_REQUIRED'}, status=400)
+    if 'thumbnail' not in request_data.keys():
+        return JsonResponse(data={'message': 'THUMBNAIL_REQUIRED'}, status=400)
+    if 'type' not in request_data.keys():
+        return JsonResponse(data={'message': 'TYPE_REQUIRED'}, status=400)
+    if 'platform' not in request_data.keys():
+        return JsonResponse(data={'message': 'PLATFORM_REQUIRED'}, status=400)
+    if 'source' not in request_data.keys():
+        return JsonResponse(data={'message': 'SOURCE_REQUIRED'}, status=400)
+    if 'id' not in request_data.keys():
+        return JsonResponse(data={'message': 'ID_REQUIRED'}, status=400)
+
+    is_auth = check_token(request)
+    if isinstance(is_auth, JsonResponse):
+        return is_auth
+
+    col = DB['collection']
+    collection = col.find_one({'_id': id})
+    if collection is None:
+        return JsonResponse(status=404, data={'message': 'Not found'})
+
+    try:
+        col = DB['collection_item']
+        update_data = dict(
+            collection_id=id,
+            id=request_data['id'],
+            url=request_data['url'],
+            type=request_data['type'],
+            thumbnail=request_data['thumbnail'],
+            platform=request_data['platform'],
+            source=request_data['source']
+        )
+        col.insert_one(update_data)
+        write_log(update_data, 'add_item', is_auth)
+        return JsonResponse(status=200, data={'message': 'Success'})
+    except errors.DuplicateKeyError:
+        return JsonResponse(status=422, data={'message': 'Already exist'})
+
+
 def check_token(request):
     try:
         access_token = request.headers['Authorization'].split(' ')[1]
@@ -375,22 +448,9 @@ def check_token(request):
     return is_auth
 
 
-def write_log_collection(data, user=None):
+def write_log(data, action, user=None):
     col = DB['log']
     data['time'] = datetime.now()
-    data['type'] = 'collection'
+    data['type'] = action
     data['user'] = user.__dict__ if user is not None else None
     col.insert_one(data)
-
-
-def get_user_collection(is_auth):
-    col = DB['user']
-    user = col.find_one({'phone': is_auth.phone, 'verified': True}, {'favorites': 1})
-    return user['favorites']
-
-
-def check_added(collection, id, platform):
-    for item in collection:
-        if item['id'] == id and item['platform'] == platform:
-            return True
-    return False
