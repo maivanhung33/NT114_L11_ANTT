@@ -47,7 +47,7 @@ class FaceBook:
                     url=FaceBook.get_download_url(video_id),
                     thumbnail=video['thumbnail'],
                     title=video['title'])
-                return {'owner': owner, 'data': [item]}
+                return {'owner': owner, 'data': [item], 'hasNextPage': False, 'cursor': None}
             except Exception as e:
                 raise e
                 # print('[FB] error ' + e.__str__())

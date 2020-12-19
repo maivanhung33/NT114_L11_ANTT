@@ -421,6 +421,7 @@ def add_to_collection(request, id):
         col = DB['collection_item']
         update_data = dict(
             collection_id=id,
+            owner_phone=is_auth.phone,
             id=request_data['id'],
             url=request_data['url'],
             type=request_data['type'],

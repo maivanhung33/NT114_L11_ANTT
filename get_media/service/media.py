@@ -145,7 +145,7 @@ def find_existence(link, limit, cursor=None):
         query = {'srcUrl': link, 'limit': limit, }
     else:
         query = {'srcUrl': link, 'limit': limit, 'first': cursor}
-    is_exit = col.find_one(query, {'_id': 0})
+    is_exit = col.find_one(query, {'_id': 0, 'first': 0, 'limit': 0, '_expireAt': 0})
     if is_exit is not None:
         return is_exit
     return None
@@ -189,26 +189,27 @@ def get_user_collection(is_auth):
 
 
 def check_added(is_auth, response, platform):
-    if platform == 'tiktok':
-        if is_auth is None:
-            response['isAdded'] = False
-        else:
-            collection = get_user_collection(is_auth)
-            response['isAdded'] = False
-            for item_1 in collection:
-                if response['id'] == item_1['id'] and platform == item_1['platform']:
-                    response['isAdded'] = True
+    if is_auth is None:
+        response['isAdded'] = False
+        response['collectionId'] = None
         return response
 
-    if is_auth is None:
-        for item in response['data']:
-            item['isAdded'] = False
+    col = DB['collection_item']
+    if platform == 'tiktok':
+        response['isAdded'] = False
+        response['collectionId'] = None
+        col_item = col.find_one({'owner_phone': is_auth.phone, 'id': response['id']}, {'collection_id': 1})
+        print(col_item)
+        if col_item is not None:
+            response['isAdded'] = True
+            response['collectionId'] = col_item['collection_id']
+        return response
     else:
-        collection = get_user_collection(is_auth)
         for item in response['data']:
             item['isAdded'] = False
-            for item_1 in collection:
-                if item['id'] == item_1['id'] and platform == item_1['platform']:
-                    item['isAdded'] = True
-                    break
-    return response
+            item['collectionId'] = None
+            col_item = col.find_one({'owner_phone': is_auth.phone, 'id': item['id']}, {'collection_id': 1})
+            if col_item is not None:
+                item['isAdded'] = True
+                item['collectionId'] = col_item['collection_id']
+        return response
