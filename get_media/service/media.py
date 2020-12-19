@@ -189,22 +189,25 @@ def get_user_collection(is_auth):
 
 
 def check_added(is_auth, response, platform):
-    if is_auth is None:
-        response['isAdded'] = False
-        response['collectionId'] = None
-        return response
-
     col = DB['collection_item']
     if platform == 'tiktok':
+        if is_auth is None:
+            response['isAdded'] = False
+            response['collectionId'] = None
+            return response
         response['isAdded'] = False
         response['collectionId'] = None
         col_item = col.find_one({'owner_phone': is_auth.phone, 'id': response['id']}, {'collection_id': 1})
-        print(col_item)
         if col_item is not None:
             response['isAdded'] = True
             response['collectionId'] = col_item['collection_id']
         return response
     else:
+        if is_auth is None:
+            for item in response['data']:
+                item['isAdded'] = False
+                item['collectionId'] = None
+            return response
         for item in response['data']:
             item['isAdded'] = False
             item['collectionId'] = None
