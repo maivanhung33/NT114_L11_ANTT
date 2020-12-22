@@ -84,7 +84,7 @@ def get_insta_media(request):
     limit = data['limit'] if 'limit' in data.keys() else 50
     cursor = data['cursor'] if 'cursor' in data.keys() else ''
 
-    write_log_crawl(data['url'],'instagram'. is_auth)
+    write_log_crawl(data['url'],'instagram', is_auth)
     insta = InstaAPI(data['url'])
     is_existing = find_existence(insta.get_url(), limit, cursor)
     if is_existing is not None:
