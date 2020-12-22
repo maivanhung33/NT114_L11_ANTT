@@ -166,7 +166,8 @@ def write_data(data, limit, first=None):
 
 def write_log_crawl(url, user: User = None):
     col = DB['log']
-    log = {'url': url, 'time': datetime.now(), 'type': 'crawl', 'user': user.__dict__ if user is not None else user}
+    log = {'url': url, 'time': int(datetime.now().timestamp()), 'type': 'crawl',
+           'user': user.__dict__ if user is not None else user}
     col.insert_one(log)
 
 
@@ -197,10 +198,10 @@ def check_added(is_auth, response, platform):
             return response
         response['isAdded'] = False
         response['collectionId'] = None
-        col_item = col.find_one({'owner_phone': is_auth.phone, 'id': response['id']}, {'collection_id': 1})
-        if col_item is not None:
+        col_item = col.find({'owner_phone': is_auth.phone, 'id': response['id']}, {'collection_id': 1})
+        if col_item:
             response['isAdded'] = True
-            response['collectionId'] = col_item['collection_id']
+            response['collectionId'] = [i['collection_id'] for i in col_item]
         return response
     else:
         if is_auth is None:
@@ -211,8 +212,8 @@ def check_added(is_auth, response, platform):
         for item in response['data']:
             item['isAdded'] = False
             item['collectionId'] = None
-            col_item = col.find_one({'owner_phone': is_auth.phone, 'id': item['id']}, {'collection_id': 1})
-            if col_item is not None:
+            col_item = list(col.find({'owner_phone': is_auth.phone, 'id': item['id']}, {'collection_id': 1}))
+            if col_item:
                 item['isAdded'] = True
-                item['collectionId'] = col_item['collection_id']
+                item['collectionId'] = [i['collection_id'] for i in col_item]
         return response

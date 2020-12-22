@@ -20,5 +20,6 @@ urlpatterns = [
     # path('', include('get_media.controller.test')),
     path('download/', include('get_media.controller.media')),
     path('', include('get_media.controller.user')),
+    path('admin/', include('get_media.controller.admin'))
 
 ]

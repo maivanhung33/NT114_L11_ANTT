@@ -13,7 +13,7 @@ from pymongo import errors
 from rest_framework.decorators import api_view
 from twilio.rest import Client
 
-from get_media.model.user import User
+from get_media.model.user import User, TYPE_USER
 from get_media.module import auth
 from get_media.module.database import database
 from get_media.request.user import UserRegister, UserLogin, UserRefresh, VerifyOtpRegister, ResetPassword, \
@@ -41,15 +41,14 @@ def register(request):
                     password=bcrypt.hashpw(form.cleaned_data['password'].encode(), bcrypt.gensalt()).decode(),
                     lastname=form.cleaned_data['lastname'],
                     firstname=form.cleaned_data['firstname'],
-                    birthday=form.cleaned_data['birthday'])
+                    birthday=form.cleaned_data['birthday'],)
 
     col.update({'phone': form.cleaned_data['phone']}, {'$set': new_user.__dict__}, upsert=True)
 
     send_otp(form.cleaned_data['phone'])
     write_log({'user': form.cleaned_data['phone']}, 'register')
 
-    return JsonResponse(status=201,
-                        data={'status': 'success', 'message': 'Waiting for verifying your phone'})
+    return JsonResponse(status=201, data={'status': 'success', 'message': 'Waiting for verifying your phone'})
 
 
 @api_view(['POST'])
@@ -244,11 +243,13 @@ def login(data):
     if not validation_phone(data.cleaned_data['phone']):
         return JsonResponse(status=400, data=dict(message='Wrong phone number format'))
     col = DB['user']
-    user = col.find_one({'phone': data.cleaned_data['phone'], 'verified': True})
+    user = col.find_one({'phone': data.cleaned_data['phone'], 'verified': True, 'type': TYPE_USER})
     if not user:
         return JsonResponse(status=404, data=dict(message='User not exits'))
     if not bcrypt.checkpw(data.cleaned_data['password'].encode(), user['password'].encode()):
         return JsonResponse(status=401, data=dict(message='Password is not correct'))
+    if not user['is_active']:
+        return JsonResponse(status=401, data=dict(message='Account has been disable'))
 
     response = dict(accessToken=auth.generate_access_token(phone=user['phone'],
                                                            firstname=user['firstname'],
@@ -259,8 +260,7 @@ def login(data):
                                                              password=user['password']).decode(),
                     expireAt=int(time()) + 3600)
     write_log({'user': user['phone']}, 'login')
-    return JsonResponse(status=200,
-                        data=response)
+    return JsonResponse(status=200, data=response)
 
 
 def refresh(data):
@@ -268,7 +268,7 @@ def refresh(data):
     if user in [0, -1]:
         return JsonResponse(status=400, data={'message': 'Refresh token is not correct or expired'})
     col = DB['user']
-    user = col.find_one({'password': user.password})
+    user = col.find_one({'password': user.password, 'phone': user.phone, 'is_active': True, 'type': TYPE_USER})
     if not user:
         return JsonResponse(status=400, data={'message': 'Can not refresh token'})
     response = dict(accessToken=auth.generate_access_token(phone=user['phone'],
@@ -451,7 +451,7 @@ def check_token(request):
 
 def write_log(data, action, user=None):
     col = DB['log']
-    data['time'] = datetime.now()
+    data['time'] = int(datetime.now().timestamp())
     data['type'] = action
     data['user'] = user.__dict__ if user is not None else None
     col.insert_one(data)

@@ -5,22 +5,26 @@ from dataclasses import dataclass
 import bcrypt as bcrypt
 import jwt
 
+from get_media.model.user import TYPE_USER
+
 SECRET = os.environ.get('SECRET') or 'uit.edu.vn'
 
 
 @dataclass
 class RefreshTokenInfo:
+    type: str
     phone: str
     password: bcrypt
     email: str = None
 
     @staticmethod
     def new(data: dict):
-        return RefreshTokenInfo(phone=data['phone'], password=data['password'], email=data['email'])
+        return RefreshTokenInfo(type=data['type'], phone=data['phone'], password=data['password'], email=data['email'])
 
 
 @dataclass
 class AccessTokenInfo:
+    type: str
     phone: str
     firstname: str
     lastname: str
@@ -29,31 +33,34 @@ class AccessTokenInfo:
     @staticmethod
     def new(data: dict):
         return AccessTokenInfo(
+            type=data['type'],
             phone=data['phone'],
             firstname=data['firstname'],
             lastname=data['lastname'],
             email=data['email'])
 
 
-def generate_access_token(phone, firstname, lastname, email):
+def generate_access_token(phone, firstname, lastname, email, type=TYPE_USER):
     now = int(time.time())
     token_expire_at = now + 3600
     data = {
-        "phone": phone,
-        "email": email,
+        'type': type,
+        'phone': phone,
+        'email': email,
         'firstname': firstname,
         'lastname': lastname,
-        "start_at": now,
-        "exp": token_expire_at,
+        'start_at': now,
+        'exp': token_expire_at,
     }
     return jwt.encode(data, SECRET, algorithm='HS256')
 
 
-def generate_refresh_token(phone, email, password):
+def generate_refresh_token(phone, email, password, type=TYPE_USER):
     data = {
-        "phone": phone,
-        "email": email,
-        "password": password
+        'type': type,
+        'phone': phone,
+        'email': email,
+        'password': password
     }
     return jwt.encode(data, SECRET, algorithm='HS256')
 
