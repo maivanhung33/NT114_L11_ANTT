@@ -50,7 +50,7 @@ def reset_password(request):
         return JsonResponse(status=404, data=dict(message='User not exits'))
 
     send_otp(form.cleaned_data['phone'])
-    write_log({'user': form.cleaned_data['phone']}, 'reset_password')
+    write_log({'user': form.cleaned_data['phone']}, 'admin_reset_password')
 
     return JsonResponse(status=200, data={'status': 'pending', 'message': 'waiting confirm otp'})
 
@@ -120,6 +120,8 @@ def deactivate_account(request, phone):
 
     user['is_active'] = False
     col.update_one({'type': TYPE_USER, 'phone': phone}, {'$set': user})
+    write_log({}, 'deactivate_account', is_auth)
+
     return JsonResponse(status=200, data=user)
 
 
@@ -138,6 +140,7 @@ def activate_account(request, phone):
 
     user['is_active'] = True
     col.update_one({'type': TYPE_USER, 'phone': phone}, {'$set': user})
+    write_log({}, 'activate_account', is_auth)
 
     return JsonResponse(status=200, data=user)
 
@@ -155,7 +158,7 @@ def logs(request):
     end_to = int(request.GET['to']) if 'to' in request.GET.keys() else 9999999999
     query = {'time': {'$gte': start_from, '$lte': end_to}}
     if log_type is not None:
-        query['type']= log_type
+        query['type'] = log_type
 
     col = DB['log']
     count = col.find(query, {'_id': 0}).count()
@@ -185,7 +188,7 @@ def login(data):
                                                              password=user['password'],
                                                              type=TYPE_ADMIN).decode(),
                     expireAt=int(time()) + 3600)
-    write_log({'phone':user['phone']}, 'admin_login')
+    write_log({'phone': user['phone']}, 'admin_login')
     return JsonResponse(status=200, data=response)
 
 
