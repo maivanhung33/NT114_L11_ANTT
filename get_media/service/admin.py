@@ -162,7 +162,7 @@ def logs(request):
 
     col = DB['log']
     count = col.find(query, {'_id': 0}).count()
-    logs = list(col.find(query, {'_id': 0}).limit(limit).skip(offset))
+    logs = list(col.find(query, {'_id': 0}).limit(limit).skip(offset).sort(['time', -1]))
     return JsonResponse(status=200, data={'count': count, 'logs': logs})
 
 
