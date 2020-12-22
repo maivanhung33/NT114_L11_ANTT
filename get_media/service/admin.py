@@ -185,7 +185,7 @@ def login(data):
                                                              password=user['password'],
                                                              type=TYPE_ADMIN).decode(),
                     expireAt=int(time()) + 3600)
-    write_log({'user': user['phone']}, 'admin_login')
+    write_log({'phone':user['phone']}, 'admin_login')
     return JsonResponse(status=200, data=response)
 
 
