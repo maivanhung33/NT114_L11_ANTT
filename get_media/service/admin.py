@@ -4,6 +4,7 @@ from datetime import datetime
 from time import time
 
 import bcrypt
+from bson.code import Code
 from django.http import JsonResponse
 from rest_framework.decorators import api_view
 from twilio.rest import Client
@@ -146,7 +147,7 @@ def activate_account(request, phone):
 
 
 @api_view(['GET'])
-def logs(request):
+def list_logs(request):
     is_auth = check_token(request)
     if isinstance(is_auth, JsonResponse):
         return is_auth
@@ -164,6 +165,67 @@ def logs(request):
     count = col.find(query, {'_id': 0}).count()
     logs = list(col.find(query, {'_id': 0}).limit(limit).skip(offset).sort('time', -1))
     return JsonResponse(status=200, data={'count': count, 'logs': logs})
+
+
+@api_view(['GET'])
+def get_statistics(request):
+    is_auth = check_token(request)
+    if isinstance(is_auth, JsonResponse):
+        return is_auth
+
+    statistic_type = request.GET['type'] if 'type' in request.GET.keys() else 'platform'
+    end_to = int(request.GET['to']) if 'to' in request.GET.keys() else int(datetime.now().timestamp())
+    start_from = int(request.GET['from']) if 'from' in request.GET.keys() else end_to - 2592000
+
+    response = {'data': []}
+    if statistic_type == 'platform':
+        col = DB['log']
+        map = Code('function() { emit(this.platform,1); }')
+        reduce = Code('function(key, values) {return Array.sum(values)}')
+        x = col.map_reduce(map, reduce, "myresults",
+                           query={"type": "crawl", "time": {"$gt": start_from, "$lte": end_to}})
+        for doc in x.find():
+            if doc['_id'] is None:
+                continue
+            response['data'].append({'platform': doc['_id'], 'count': int(doc['value'])})
+    elif statistic_type == 'link':
+        col = DB['log']
+        map = Code('function() { emit(this.url,1); }')
+        reduce = Code('function(key, values) {return Array.sum(values)}')
+        x = col.map_reduce(map, reduce, "myresults",
+                           query={"type": "crawl", "time": {"$gt": start_from, "$lte": end_to}})
+        for doc in x.find():
+            if doc['_id'] is None:
+                continue
+            response['data'].append({'link': doc['_id'], 'count': int(doc['value'])})
+    elif statistic_type == 'user':
+        col = DB['log']
+        map = Code('function() { emit(this.user,1); }')
+        reduce = Code('function(key, values) {return Array.sum(values)}')
+        x = col.map_reduce(map, reduce, "myresults",
+                           query={"type": "crawl", "time": {"$gt": start_from, "$lte": end_to}})
+        for doc in x.find():
+            if doc['_id'] is None:
+                continue
+            response['data'].append({'user': doc['_id'], 'count': int(doc['value'])})
+    elif statistic_type == 'register':
+        col = DB['log']
+        query = {'type': 'register', 'time': {'$gte': start_from, '$lte': end_to}}
+        count = col.find(query, {'_id'}).count()
+        response['data'].append({'type': 'register', count: count})
+        query = {'type': 'register_success', 'time': {'$gte': start_from, '$lte': end_to}}
+        count = col.find(query, {'_id'}).count()
+        response['data'].append({'type': 'registerSuccess', count: count})
+    elif statistic_type == 'crawl':
+        col = DB['log']
+        query = {'type': 'crawl', 'time': {'$gte': start_from, '$lte': end_to}}
+        count_total = col.find(query, {'_id'}).count()
+        response['data'].append({'type': 'total', 'count': count_total})
+        query = {'type': 'crawl', 'time': {'$gte': start_from, '$lte': end_to}, 'user': None}
+        count_anonymous = col.find(query, {'_id'}).count()
+        response['data'].append({'type': 'anonymous', 'count': count_anonymous})
+        response['data'].append({'type': 'user', 'count': count_total - count_anonymous})
+    return JsonResponse(status=200, data=response)
 
 
 def login(data):

@@ -44,9 +44,9 @@ def register(request):
                     birthday=form.cleaned_data['birthday'],)
 
     col.update({'phone': form.cleaned_data['phone']}, {'$set': new_user.__dict__}, upsert=True)
+    write_log({'user': form.cleaned_data['phone']}, 'register')
 
     send_otp(form.cleaned_data['phone'])
-    write_log({'user': form.cleaned_data['phone']}, 'register')
 
     return JsonResponse(status=201, data={'status': 'success', 'message': 'Waiting for verifying your phone'})
 
