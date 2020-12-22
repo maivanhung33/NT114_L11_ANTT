@@ -446,6 +446,8 @@ def check_token(request):
         return JsonResponse(status=401, data={'message': 'Unauthenticated'})
     elif is_auth == 0:
         return JsonResponse(status=401, data={'message': 'Token invalid'})
+    elif is_auth.type != TYPE_USER:
+        return JsonResponse(status=401, data={'message': 'Unauthenticated'})
     return is_auth
 
 
