@@ -71,7 +71,7 @@ def verify_opt_reset_password(request):
         update_password = {
             '$set': {'password': bcrypt.hashpw(form.cleaned_data['password'].encode(), bcrypt.gensalt()).decode()}}
         col.update_one({'phone': form.cleaned_data['phone']}, update_password)
-        write_log({'user': form.cleaned_data['phone']}, 'reset_password_admin_success')
+        write_log({'user': form.cleaned_data['phone']}, 'admin_reset_password_success')
         return JsonResponse(status=200, data={'status': 'success', 'message': 'Password has been updated'})
     return JsonResponse(status=404, data={'status': 'fail', 'message': 'Otp incorrect'})
 
