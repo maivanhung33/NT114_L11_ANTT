@@ -153,6 +153,7 @@ def list_logs(request):
         return is_auth
 
     user = request.GET['user'] if 'user' in request.GET.keys() else None
+    platform = request.GET['platform'] if 'platform' in request.GET.keys() else None
     log_type = request.GET['type'] if 'type' in request.GET.keys() else None
     limit = int(request.GET['limit']) if 'limit' in request.GET.keys() else 20
     offset = int(request.GET['offset']) if 'offset' in request.GET.keys() else 0
@@ -163,6 +164,8 @@ def list_logs(request):
         query['type'] = log_type
     if user is not None:
         query['user.phone'] = user
+    if platform is not None:
+        query['platform'] = platform
 
     col = DB['log']
     count = col.find(query, {'_id': 0}).count()
