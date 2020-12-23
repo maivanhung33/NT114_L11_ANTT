@@ -152,6 +152,7 @@ def list_logs(request):
     if isinstance(is_auth, JsonResponse):
         return is_auth
 
+    user = request.GET['user'] if 'user' in request.GET.keys() else None
     log_type = request.GET['type'] if 'type' in request.GET.keys() else None
     limit = int(request.GET['limit']) if 'limit' in request.GET.keys() else 20
     offset = int(request.GET['offset']) if 'offset' in request.GET.keys() else 0
@@ -160,6 +161,8 @@ def list_logs(request):
     query = {'time': {'$gte': start_from, '$lte': end_to}}
     if log_type is not None:
         query['type'] = log_type
+    if user is not None:
+        query['user.phone'] = user
 
     col = DB['log']
     count = col.find(query, {'_id': 0}).count()
