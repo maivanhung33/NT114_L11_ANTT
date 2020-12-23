@@ -16,20 +16,20 @@ def database() -> MongoClient:
 
     db = os.environ.get('MONGO_DB') or 'do_an_chuyen_nganh'
 
-    auth_source = os.environ.get('MONGO_AUTH_SOURCE') or 'mongo'
+    auth_source = os.environ.get('MONGO_AUTH_SOURCE') or 'admin'
 
     auth_mechanism = os.environ.get('MONGO_AUTH_MECHANISM') or 'SCRAM-SHA-256'
 
-    env = os.environ.get('ENV') or 'local'
+    # env = os.environ.get('ENV') or 'local'
     # For local
-    if env == 'local':
-        client = MongoClient(host=host, port=port, username=username, password=password, maxPoolSize=max_pool_size,
-                             authMechanism=auth_mechanism, authSource=auth_source)[db]
-        return client
+    # if env == 'local':
+    client = MongoClient(host=host, port=port, username=username, password=password, maxPoolSize=max_pool_size,
+                         authMechanism=auth_mechanism, authSource=auth_source)[db]
+    return client
 
-    if env == 'pro':
-        client = MongoClient("mongodb+srv://{}:{}@{}/{}?retryWrites=true&w=majority".format(username,
-                                                                                            password,
-                                                                                            host,
-                                                                                            db))[db]
-        return client
+    # if env == 'pro':
+    #     client = MongoClient("mongodb+srv://{}:{}@{}/{}?retryWrites=true&w=majority".format(username,
+    #                                                                                         password,
+    #                                                                                         host,
+    #                                                                                         db))[db]
+    #     return client
