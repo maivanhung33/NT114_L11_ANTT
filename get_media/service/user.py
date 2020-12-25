@@ -43,7 +43,7 @@ def register(request):
                     firstname=form.cleaned_data['firstname'],
                     birthday=form.cleaned_data['birthday'], )
 
-    col.update({'phone': form.cleaned_data['phone']}, {'$set': new_user.__dict__}, upsert=True)
+    col.update({'phone': form.cleaned_data['phone'], 'type': 'user'}, {'$set': new_user.__dict__}, upsert=True)
     write_log({}, 'register', {'phone': form.cleaned_data['phone']})
 
     send_otp(form.cleaned_data['phone'])
