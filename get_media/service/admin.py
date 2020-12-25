@@ -83,8 +83,8 @@ def list_user(request):
     if isinstance(is_auth, JsonResponse):
         return is_auth
 
-    limit = request.GET['limit'] if 'limit' in request.GET.keys() else 20
-    offset = request.GET['offset'] if 'offset' in request.GET.keys() else 0
+    limit = int(request.GET['limit']) if 'limit' in request.GET.keys() else 20
+    offset = int(request.GET['offset']) if 'offset' in request.GET.keys() else 0
 
     col = DB['user']
     count = col.find({'type': TYPE_USER}).count()
