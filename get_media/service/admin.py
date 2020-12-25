@@ -51,7 +51,7 @@ def reset_password(request):
         return JsonResponse(status=404, data=dict(message='User not exits'))
 
     send_otp(form.cleaned_data['phone'])
-    write_log({'user': form.cleaned_data['phone']}, 'admin_reset_password')
+    write_log({}, 'admin_reset_password',{'phone': form.cleaned_data['phone']})
 
     return JsonResponse(status=200, data={'status': 'pending', 'message': 'waiting confirm otp'})
 
@@ -256,7 +256,7 @@ def login(data):
                                                              password=user['password'],
                                                              type=TYPE_ADMIN).decode(),
                     expireAt=int(time()) + 3600)
-    write_log({'phone': user['phone']}, 'admin_login')
+    write_log({}, 'admin_login',{'phone': user['phone']})
     return JsonResponse(status=200, data=response)
 
 
@@ -331,5 +331,5 @@ def write_log(data, action, user=None):
     col = DB['log']
     data['time'] = int(datetime.now().timestamp())
     data['type'] = action
-    data['user'] = user.__dict__ if user is not None else None
+    data['user'] = user.__dict__ if user is not None and not isinstance(user, dict) else None
     col.insert_one(data)
