@@ -34,7 +34,7 @@ def register(request):
         return validate_form
 
     col = DB['user']
-    is_exits = col.find_one({'phone': form.cleaned_data['phone'], 'verified': True})
+    is_exits = col.find_one({'phone': form.cleaned_data['phone'], 'type': 'user', 'verified': True})
     if is_exits:
         return JsonResponse(status=422, data=dict(message='User name has exits'))
     new_user = User(phone=form.cleaned_data['phone'],
