@@ -41,10 +41,10 @@ def register(request):
                     password=bcrypt.hashpw(form.cleaned_data['password'].encode(), bcrypt.gensalt()).decode(),
                     lastname=form.cleaned_data['lastname'],
                     firstname=form.cleaned_data['firstname'],
-                    birthday=form.cleaned_data['birthday'],)
+                    birthday=form.cleaned_data['birthday'], )
 
     col.update({'phone': form.cleaned_data['phone']}, {'$set': new_user.__dict__}, upsert=True)
-    write_log({'user': form.cleaned_data['phone']}, 'register')
+    write_log({}, 'register', {'phone': form.cleaned_data['phone']})
 
     send_otp(form.cleaned_data['phone'])
 
@@ -80,7 +80,7 @@ def reset_password(request):
         return JsonResponse(status=404, data=dict(message='User not exits'))
 
     send_otp(form.cleaned_data['phone'])
-    write_log({'user': form.cleaned_data['phone']}, 'reset_password')
+    write_log({}, 'reset_password', {'phone': form.cleaned_data['phone']})
 
     return JsonResponse(status=200, data={'status': 'pending', 'message': 'waiting confirm otp'})
 
@@ -100,7 +100,7 @@ def verify_opt_register(request):
     if verify_otp(phone=form.cleaned_data['phone'], otp=form.cleaned_data['otp']) == 'approved':
         update_verified = {'$set': {'verified': True}}
         col.update_one({'phone': form.cleaned_data['phone']}, update_verified)
-        write_log({'user': form.cleaned_data['phone']}, 'register_success')
+        write_log({}, 'register_success', {'phone': form.cleaned_data['phone']})
         return JsonResponse(status=200, data={'status': 'success', 'message': 'Verified'})
 
     return JsonResponse(status=404, data={'status': 'fail', 'message': 'Otp incorrect'})
@@ -122,7 +122,7 @@ def verify_opt_reset_password(request):
         update_password = {
             '$set': {'password': bcrypt.hashpw(form.cleaned_data['password'].encode(), bcrypt.gensalt()).decode()}}
         col.update_one({'phone': form.cleaned_data['phone']}, update_password)
-        write_log({'user': form.cleaned_data['phone']}, 'reset_password_success')
+        write_log({}, 'reset_password_success', {'phone': form.cleaned_data['phone']})
         return JsonResponse(status=200, data={'status': 'success', 'message': 'Password has been updated'})
     return JsonResponse(status=404, data={'status': 'fail', 'message': 'Otp incorrect'})
 
@@ -259,7 +259,7 @@ def login(data):
                                                              email=user['email'],
                                                              password=user['password']).decode(),
                     expireAt=int(time()) + 3600)
-    write_log({'user': user['phone']}, 'login')
+    write_log({}, 'login', {'phone': user['phone']})
     return JsonResponse(status=200, data=response)
 
 
