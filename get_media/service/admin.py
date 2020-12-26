@@ -51,7 +51,7 @@ def reset_password(request):
         return JsonResponse(status=404, data=dict(message='User not exits'))
 
     send_otp(form.cleaned_data['phone'])
-    write_log({}, 'admin_reset_password',{'phone': form.cleaned_data['phone']})
+    write_log({}, 'admin_reset_password', {'phone': form.cleaned_data['phone']})
 
     return JsonResponse(status=200, data={'status': 'pending', 'message': 'waiting confirm otp'})
 
@@ -85,10 +85,21 @@ def list_user(request):
 
     limit = int(request.GET['limit']) if 'limit' in request.GET.keys() else 20
     offset = int(request.GET['offset']) if 'offset' in request.GET.keys() else 0
+    lastname = request.GET['lastname'] if 'lastname' in request.GET.keys() else None
+    firstname = request.GET['firstname'] if 'firstname' in request.GET.keys() else None
+    phone = request.GET['phone'] if 'phone' in request.GET.keys() else None
+
+    query = {'type': TYPE_USER}
+    if lastname is not None:
+        query['lastname'] = lastname
+    if firstname is not None:
+        query['firstname'] = firstname
+    if phone is not None:
+        query['phone'] = phone
 
     col = DB['user']
-    count = col.find({'type': TYPE_USER}).count()
-    users = list(col.find({'type': TYPE_USER}, {'_id': 0, 'password': 0}).limit(limit).skip(offset))
+    count = col.find(query).count()
+    users = list(col.find(query, {'_id': 0, 'password': 0}).limit(limit).skip(offset))
 
     return JsonResponse(status=200, data={'count': count, 'users': users})
 
@@ -256,7 +267,7 @@ def login(data):
                                                              password=user['password'],
                                                              type=TYPE_ADMIN).decode(),
                     expireAt=int(time()) + 3600)
-    write_log({}, 'admin_login',{'phone': user['phone']})
+    write_log({}, 'admin_login', {'phone': user['phone']})
     return JsonResponse(status=200, data=response)
 
 
