@@ -85,17 +85,16 @@ def list_user(request):
 
     limit = int(request.GET['limit']) if 'limit' in request.GET.keys() else 20
     offset = int(request.GET['offset']) if 'offset' in request.GET.keys() else 0
-    lastname = request.GET['lastname'] if 'lastname' in request.GET.keys() else None
-    firstname = request.GET['firstname'] if 'firstname' in request.GET.keys() else None
-    phone = request.GET['phone'] if 'phone' in request.GET.keys() else None
+    q = request.GET['q'] if 'q' in request.GET.keys() else None
 
     query = {'type': TYPE_USER}
-    if lastname is not None:
-        query['lastname'] = lastname
-    if firstname is not None:
-        query['firstname'] = firstname
-    if phone is not None:
-        query['phone'] = phone
+    optional_query = []
+    if q is not None:
+        rgx = re.compile('.*{}.*'.format(q), re.IGNORECASE)
+        optional_query.append({'lastname': rgx})
+        optional_query.append({'firstname': rgx})
+        optional_query.append({'phone': rgx})
+        query['$or'] = optional_query
 
     col = DB['user']
     count = col.find(query).count()
