@@ -220,7 +220,7 @@ def get_statistics(request):
         reduce = Code('function(key, values) {return Array.sum(values)}')
         x = col.map_reduce(map, reduce, "myresults",
                            query={"type": "crawl", "time": {"$gt": start_from, "$lte": end_to}})
-        for doc in x.find():
+        for doc in x.find().sort('value',-1):
             if doc['_id'] is None:
                 continue
             response['data'].append({'platform': doc['_id'], 'count': int(doc['value'])})
@@ -229,7 +229,7 @@ def get_statistics(request):
         reduce = Code('function(key, values) {return Array.sum(values)}')
         x = col.map_reduce(map, reduce, "myresults",
                            query={"type": "crawl", "time": {"$gt": start_from, "$lte": end_to}})
-        for doc in x.find():
+        for doc in x.find().sort('value',-1):
             if doc['_id'] is None:
                 continue
             response['data'].append({'link': doc['_id'], 'count': int(doc['value'])})
@@ -238,7 +238,7 @@ def get_statistics(request):
         reduce = Code('function(key, values) {return Array.sum(values)}')
         x = col.map_reduce(map, reduce, "myresults",
                            query={"type": "crawl", "time": {"$gt": start_from, "$lte": end_to}})
-        for doc in x.find():
+        for doc in x.find().sort('value',-1):
             if doc['_id'] is None:
                 continue
             response['data'].append({'user': doc['_id'], 'count': int(doc['value'])})
@@ -247,7 +247,7 @@ def get_statistics(request):
         reduce = Code('function(key, values) {return Array.sum(values)}')
         x = col.map_reduce(map, reduce, "myresults",
                            query={"type": "add_item", "time": {"$gt": start_from, "$lte": end_to}})
-        for doc in x.find():
+        for doc in x.find().sort('value',-1):
             if doc['_id'] is None:
                 continue
             response['data'].append({'link': doc['_id'], 'count': int(doc['value'])})
