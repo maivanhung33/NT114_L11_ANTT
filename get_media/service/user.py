@@ -385,6 +385,8 @@ def remove_collection(request, id):
 
     col = DB['collection']
     col.delete_one({'_id': id})
+    col = DB['collection_item']
+    col.delete({'collection_id': id})
     write_log({}, 'remove_collection', is_auth)
 
     return JsonResponse(status=200, data={'message': 'Success'})

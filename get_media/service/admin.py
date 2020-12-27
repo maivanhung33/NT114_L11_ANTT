@@ -104,6 +104,26 @@ def list_user(request):
 
 
 @api_view(['GET'])
+def list_collection(request):
+    is_auth = check_token(request)
+    if isinstance(is_auth, JsonResponse):
+        return is_auth
+
+    limit = int(request.GET['limit']) if 'limit' in request.GET.keys() else 20
+    offset = int(request.GET['offset']) if 'offset' in request.GET.keys() else 0
+    user = request.GET['user'] if 'user' in request.GET.keys() else None
+
+    col = DB['collection']
+    query = {}
+    if user is not None:
+        query['owner_phone'] = user
+    count = col.find(query).count()
+    collections = list(col.find(query).limit(limit).skip(offset))
+
+    return JsonResponse(status=200, data={'count': count, 'collections': collections})
+
+
+@api_view(['GET'])
 def get_user(request, phone):
     is_auth = check_token(request)
     if isinstance(is_auth, JsonResponse):
@@ -194,8 +214,8 @@ def get_statistics(request):
     start_from = int(request.GET['from']) if 'from' in request.GET.keys() else end_to - 2592000
 
     response = {'data': []}
+    col = DB['log']
     if statistic_type == 'platform':
-        col = DB['log']
         map = Code('function() { emit(this.platform,1); }')
         reduce = Code('function(key, values) {return Array.sum(values)}')
         x = col.map_reduce(map, reduce, "myresults",
@@ -205,7 +225,6 @@ def get_statistics(request):
                 continue
             response['data'].append({'platform': doc['_id'], 'count': int(doc['value'])})
     elif statistic_type == 'link':
-        col = DB['log']
         map = Code('function() { emit(this.url,1); }')
         reduce = Code('function(key, values) {return Array.sum(values)}')
         x = col.map_reduce(map, reduce, "myresults",
@@ -215,7 +234,6 @@ def get_statistics(request):
                 continue
             response['data'].append({'link': doc['_id'], 'count': int(doc['value'])})
     elif statistic_type == 'user':
-        col = DB['log']
         map = Code('function() { emit(this.user,1); }')
         reduce = Code('function(key, values) {return Array.sum(values)}')
         x = col.map_reduce(map, reduce, "myresults",
@@ -224,16 +242,23 @@ def get_statistics(request):
             if doc['_id'] is None:
                 continue
             response['data'].append({'user': doc['_id'], 'count': int(doc['value'])})
+    elif statistic_type == 'item':
+        map = Code('function() { emit(this.source,1); }')
+        reduce = Code('function(key, values) {return Array.sum(values)}')
+        x = col.map_reduce(map, reduce, "myresults",
+                           query={"type": "add_item", "time": {"$gt": start_from, "$lte": end_to}})
+        for doc in x.find():
+            if doc['_id'] is None:
+                continue
+            response['data'].append({'link': doc['_id'], 'count': int(doc['value'])})
     elif statistic_type == 'register':
-        col = DB['log']
         query = {'type': 'register', 'time': {'$gte': start_from, '$lte': end_to}}
         count = col.find(query, {'_id'}).count()
-        response['data'].append({'type': 'register', count: count})
+        response['data'].append({'type': 'register', 'count': count})
         query = {'type': 'register_success', 'time': {'$gte': start_from, '$lte': end_to}}
         count = col.find(query, {'_id'}).count()
-        response['data'].append({'type': 'registerSuccess', count: count})
+        response['data'].append({'type': 'registerSuccess', 'count': count})
     elif statistic_type == 'crawl':
-        col = DB['log']
         query = {'type': 'crawl', 'time': {'$gte': start_from, '$lte': end_to}}
         count_total = col.find(query, {'_id'}).count()
         response['data'].append({'type': 'total', 'count': count_total})
@@ -241,6 +266,19 @@ def get_statistics(request):
         count_anonymous = col.find(query, {'_id'}).count()
         response['data'].append({'type': 'anonymous', 'count': count_anonymous})
         response['data'].append({'type': 'user', 'count': count_total - count_anonymous})
+    elif statistic_type == 'collection':
+        query = {'type': 'create_collection', 'time': {'$gte': start_from, '$lte': end_to}}
+        count_total = col.find(query, {'_id'}).count()
+        response['data'].append({'type': 'create', 'count': count_total})
+        query = {'type': 'remove_collection', 'time': {'$gte': start_from, '$lte': end_to}}
+        count_total = col.find(query, {'_id'}).count()
+        response['data'].append({'type': 'remove', 'count': count_total})
+        query = {'type': 'add_item', 'time': {'$gte': start_from, '$lte': end_to}}
+        count_total = col.find(query, {'_id'}).count()
+        response['data'].append({'type': 'addItem', 'count': count_total})
+        query = {'type': 'remove_item', 'time': {'$gte': start_from, '$lte': end_to}}
+        count_total = col.find(query, {'_id'}).count()
+        response['data'].append({'type': 'removeItem', 'count': count_total})
     return JsonResponse(status=200, data=response)
 
 
