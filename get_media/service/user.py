@@ -2,7 +2,6 @@ import json
 import os
 import re
 import uuid
-from datetime import datetime
 from time import time
 
 import bcrypt
@@ -15,11 +14,10 @@ from twilio.rest import Client
 
 from get_media.model.user import User, TYPE_USER
 from get_media.module import auth
-from get_media.module.database import database
+from get_media.module.database import DB
 from get_media.request.user import UserRegister, UserLogin, UserRefresh, VerifyOtpRegister, ResetPassword, \
     VerifyOtpResetPassword, AvatarUpload, UserUpdate
-
-DB = database()
+from get_media.service.log import write_log
 
 ACCOUNT_SID = os.environ.get('ACCOUNT_SID') or 'ACcdb694e13e6682b8684c5c87b159e90e'
 AUTH_TOKEN = os.environ.get('AUTH_TOKEN') or ''
@@ -451,11 +449,3 @@ def check_token(request):
     elif is_auth.type != TYPE_USER:
         return JsonResponse(status=401, data={'message': 'Unauthenticated'})
     return is_auth
-
-
-def write_log(data, action, user=None):
-    col = DB['log']
-    data['time'] = int(datetime.now().timestamp())
-    data['type'] = action
-    data['user'] = user.__dict__ if user is not None and not isinstance(user, dict) else user
-    col.insert_one(data)

@@ -5,14 +5,12 @@ import requests
 from django.http import JsonResponse, HttpResponse
 from rest_framework.decorators import api_view
 
-from get_media.model.user import User
 from get_media.module import auth
-from get_media.module.database import database
+from get_media.module.database import DB
 from get_media.module.facebook import FaceBook
 from get_media.module.instagram import InstaAPI
 from get_media.module.tiktok import TikTok
-
-DB = database()
+from get_media.service.log import write_log
 
 
 @api_view(['POST'])
@@ -26,7 +24,7 @@ def get_video_facebook(request):
     cursor = data['cursor'] if 'cursor' in data.keys() else None
 
     # Check existence
-    write_log_crawl(data['url'],'facebook', is_auth)
+    write_log({'url': data['url'], 'platform': 'facebook'}, 'crawl', is_auth)
     facebook = FaceBook(data['url'])
     is_existing = find_existence(facebook.get_url(), limit, cursor)
     if is_existing is not None:
@@ -64,7 +62,7 @@ def get_video_tiktok_info(request):
     if 'url' not in request.GET.keys():
         return JsonResponse(data={'message': 'URL_REQUIRED'}, status=400)
     try:
-        write_log_crawl(request.GET['url'],'tiktok', is_auth)
+        write_log({'url': request.GET['url'], 'platform': 'tiktok'}, 'crawl', is_auth)
         tiktok = TikTok(request.GET['url'])
         data = tiktok.get_link()
         check_added(is_auth, data, 'tiktok')
@@ -84,7 +82,7 @@ def get_insta_media(request):
     limit = data['limit'] if 'limit' in data.keys() else 50
     cursor = data['cursor'] if 'cursor' in data.keys() else ''
 
-    write_log_crawl(data['url'],'instagram', is_auth)
+    write_log({'url': data['url'], 'platform': 'instagram'}, 'crawl', is_auth)
     insta = InstaAPI(data['url'])
     is_existing = find_existence(insta.get_url(), limit, cursor)
     if is_existing is not None:
@@ -162,13 +160,6 @@ def write_data(data, limit, first=None):
     del data['_expireAt']
     del data['limit']
     del data['first']
-
-
-def write_log_crawl(url, platform, user: User = None):
-    col = DB['log']
-    log = {'url': url,'platform':platform, 'time': int(datetime.now().timestamp()), 'type': 'crawl',
-           'user': user.__dict__ if user is not None else user}
-    col.insert_one(log)
 
 
 def check_token(request):
