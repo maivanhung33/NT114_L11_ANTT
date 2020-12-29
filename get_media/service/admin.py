@@ -220,37 +220,41 @@ def get_statistics(request):
         reduce = Code('function(key, values) {return Array.sum(values)}')
         x = col.map_reduce(map, reduce, "myresults",
                            query={"type": "crawl", "time": {"$gt": start_from, "$lte": end_to}})
-        for doc in x.find().sort('value',-1):
+        for doc in x.find().sort('value', -1):
             if doc['_id'] is None:
                 continue
             response['data'].append({'platform': doc['_id'], 'count': int(doc['value'])})
+        DB['myresults'].drop()
     elif statistic_type == 'link':
         map = Code('function() { emit(this.url,1); }')
         reduce = Code('function(key, values) {return Array.sum(values)}')
         x = col.map_reduce(map, reduce, "myresults",
                            query={"type": "crawl", "time": {"$gt": start_from, "$lte": end_to}})
-        for doc in x.find().sort('value',-1):
+        for doc in x.find().sort('value', -1):
             if doc['_id'] is None:
                 continue
             response['data'].append({'link': doc['_id'], 'count': int(doc['value'])})
+        DB['myresults'].drop()
     elif statistic_type == 'user':
         map = Code('function() { emit(this.user,1); }')
         reduce = Code('function(key, values) {return Array.sum(values)}')
         x = col.map_reduce(map, reduce, "myresults",
                            query={"type": "crawl", "time": {"$gt": start_from, "$lte": end_to}})
-        for doc in x.find().sort('value',-1):
+        for doc in x.find().sort('value', -1):
             if doc['_id'] is None:
                 continue
             response['data'].append({'user': doc['_id'], 'count': int(doc['value'])})
+        DB['myresults'].drop()
     elif statistic_type == 'item':
         map = Code('function() { emit(this.source,1); }')
         reduce = Code('function(key, values) {return Array.sum(values)}')
         x = col.map_reduce(map, reduce, "myresults",
                            query={"type": "add_item", "time": {"$gt": start_from, "$lte": end_to}})
-        for doc in x.find().sort('value',-1):
+        for doc in x.find().sort('value', -1):
             if doc['_id'] is None:
                 continue
             response['data'].append({'link': doc['_id'], 'count': int(doc['value'])})
+        DB['myresults'].drop()
     elif statistic_type == 'register':
         query = {'type': 'register', 'time': {'$gte': start_from, '$lte': end_to}}
         count = col.find(query, {'_id'}).count()
