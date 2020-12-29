@@ -1,3 +1,5 @@
+from urllib import parse
+
 import requests
 
 
@@ -23,8 +25,22 @@ class FaceBook:
             if len(element) < 3 or element[3] == '':
                 return False
             self.__url = 'https://fb.watch/' + element[3] + "/"
-            self.__url = requests.get(self.__url).url
+            self.__parse_url()
             return True
+
+    def __parse_url(self):
+        url = requests.get(self.__url).url
+        if 'login' in url:
+            self.__url = parse.unquote(url.split('next=')[1])
+        else:
+            self.__url = url
+
+    def __get_video_id(self):
+        if '/videos/' in self.__url:
+            return self.__url.split('/videos/')[1].replace('/', '')
+        elif '?v=' in self.__url:
+            return self.__url.split('?v=')[1]
+        return ''
 
     def get_url(self):
         return self.__url
@@ -35,7 +51,7 @@ class FaceBook:
             return self.__get_latest_videos(page_id, limit, cursor)
         if self.__type == 1:
             try:
-                video_id = self.__url.split('/videos/')[1].replace('/', '')
+                video_id = self.__get_video_id()
                 if video_id == '':
                     return {'owner': None, 'data': []}
                 video = FaceBook.get_video_info(video_id)
