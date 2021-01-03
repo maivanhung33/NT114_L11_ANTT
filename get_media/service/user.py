@@ -175,7 +175,7 @@ def collections(request):
         return create_collection(request)
 
 
-@api_view(['GET', 'DELETE', 'POST'])
+@api_view(['GET', 'DELETE', 'POST', 'PUT'])
 def collection(request, id):
     if request.method == 'GET':
         return get_collection(request, id)
@@ -183,6 +183,8 @@ def collection(request, id):
         return remove_collection(request, id)
     elif request.method == 'POST':
         return add_to_collection(request, id)
+    elif request.method == 'PUT':
+        return update_collection(request, id)
 
 
 @api_view(['DELETE'])
@@ -387,10 +389,11 @@ def create_collection(request):
 
     try:
         col = DB['collection']
-        data = {'_id': uuid.uuid4().__str__(), 'owner_phone': is_auth.phone, 'name': request_data['name']}
+        id = uuid.uuid4().__str__()
+        data = {'_id': id, 'owner_phone': is_auth.phone, 'name': request_data['name']}
         col.insert_one(data)
-        write_log(data, 'create_collection', is_auth)
-        return JsonResponse(status=200, data={'message': 'Success'})
+        write_log({'id': id, 'name': request_data['name']}, 'create_collection', is_auth)
+        return JsonResponse(status=200, data={'message': 'Success', 'id': id})
     except errors.DuplicateKeyError:
         return JsonResponse(status=422, data={'message': 'Already exist'})
 
@@ -401,7 +404,7 @@ def remove_collection(request, id):
         return is_auth
 
     col = DB['collection']
-    collection = col.find_one({'_id': id})
+    collection = col.find_one({'_id': id, 'owner_phone': is_auth.phone})
     if collection is None:
         return JsonResponse(status=404, data={'message': 'Not found'})
 
@@ -409,8 +412,33 @@ def remove_collection(request, id):
     col.delete_one({'_id': id})
     col = DB['collection_item']
     col.delete_many({'collection_id': id})
-    write_log({}, 'remove_collection', is_auth)
+    write_log({'id': id}, 'remove_collection', is_auth)
 
+    return JsonResponse(status=200, data={'message': 'Success'})
+
+
+def update_collection(request, id):
+    is_auth = check_token(request)
+    if isinstance(is_auth, JsonResponse):
+        return is_auth
+
+    try:
+        request_data: dict = json.loads(request.body.decode('utf-8'))
+    except:
+        return JsonResponse(data={'message': 'BAD_REQUEST'}, status=400)
+
+    if 'name' not in request_data.keys():
+        return JsonResponse(data={'message': 'NAME_REQUIRED'}, status=400)
+
+    col = DB['collection']
+    collection = col.find_one({'_id': id, 'owner_phone': is_auth.phone})
+    if collection is None:
+        return JsonResponse(status=404, data={'message': 'Not found'})
+
+    col = DB['collection']
+    data = {'name': request_data['name']}
+    col.update_one({'_id': id, 'owner_phone': is_auth.phone}, {'$set': data})
+    write_log({'name': request_data['name'], 'id': id}, 'update_collection', is_auth)
     return JsonResponse(status=200, data={'message': 'Success'})
 
 
