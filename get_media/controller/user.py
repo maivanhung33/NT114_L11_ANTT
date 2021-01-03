@@ -14,4 +14,5 @@ urlpatterns = [
     path('me/collections', user.collections),
     path('me/collections/<str:id>', user.collection),
     path('me/collections/<str:col_id>/items/<str:item_id>', user.remove_collection_item, name='remove-collection_item'),
+    path('me/logs', user.list_logs, name='list_logs'),
 ]

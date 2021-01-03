@@ -12,8 +12,7 @@ from twilio.rest import Client
 from get_media.model.user import TYPE_ADMIN, TYPE_USER
 from get_media.module import auth
 from get_media.module.database import DB
-from get_media.request.user import UserLogin, UserRefresh, ResetPassword, \
-    VerifyOtpResetPassword
+from get_media.request.user import UserLogin, UserRefresh
 from get_media.service.log import write_log
 
 ACCOUNT_SID = os.environ.get('ACCOUNT_SID') or 'ACcdb694e13e6682b8684c5c87b159e90e'
@@ -35,45 +34,6 @@ def token(request):
         if form.cleaned_data['grant_type'] != 'refresh_token':
             return JsonResponse(status=400, data=dict(message='Grant type is not valid'))
         return refresh(form)
-
-
-@api_view(['POST'])
-def reset_password(request):
-    form = ResetPassword(request.POST)
-    validate_form = validate_phone_request_form(form)
-    if validate_form is not None:
-        return validate_form
-
-    col = DB['user']
-    user = col.find_one({'phone': form.cleaned_data['phone'], 'verified': True})
-    if not user:
-        return JsonResponse(status=404, data=dict(message='User not exits'))
-
-    send_otp(form.cleaned_data['phone'])
-    write_log({}, 'admin_reset_password', {'phone': form.cleaned_data['phone']})
-
-    return JsonResponse(status=200, data={'status': 'pending', 'message': 'waiting confirm otp'})
-
-
-@api_view(['POST'])
-def verify_opt_reset_password(request):
-    form = VerifyOtpResetPassword(request.POST)
-    validate_form = validate_phone_request_form(form)
-    if validate_form is not None:
-        return validate_form
-
-    col = DB['user']
-    user = col.find_one({'phone': form.cleaned_data['phone'], 'verified': True})
-    if not user:
-        return JsonResponse(status=404, data=dict(message='User not exits'))
-
-    if verify_otp(phone=form.cleaned_data['phone'], otp=form.cleaned_data['otp']) == 'approved':
-        update_password = {
-            '$set': {'password': bcrypt.hashpw(form.cleaned_data['password'].encode(), bcrypt.gensalt()).decode()}}
-        col.update_one({'phone': form.cleaned_data['phone']}, update_password)
-        write_log({'user': form.cleaned_data['phone']}, 'admin_reset_password_success')
-        return JsonResponse(status=200, data={'status': 'success', 'message': 'Password has been updated'})
-    return JsonResponse(status=404, data={'status': 'fail', 'message': 'Otp incorrect'})
 
 
 @api_view(['GET'])

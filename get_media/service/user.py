@@ -198,6 +198,30 @@ def remove_collection_item(request, col_id, item_id):
     return JsonResponse(status=200, data={'message': 'Success'})
 
 
+@api_view(['GET'])
+def list_logs(request):
+    is_auth = check_token(request)
+    if isinstance(is_auth, JsonResponse):
+        return is_auth
+
+    platform = request.GET['platform'] if 'platform' in request.GET.keys() else None
+    log_type = request.GET['type'] if 'type' in request.GET.keys() else None
+    limit = int(request.GET['limit']) if 'limit' in request.GET.keys() else 20
+    offset = int(request.GET['offset']) if 'offset' in request.GET.keys() else 0
+    start_from = int(request.GET['from']) if 'from' in request.GET.keys() else 0
+    end_to = int(request.GET['to']) if 'to' in request.GET.keys() else 9999999999
+    query = {'time': {'$gte': start_from, '$lte': end_to}, 'user.phone': is_auth.phone}
+    if log_type is not None:
+        query['type'] = log_type
+    if platform is not None:
+        query['platform'] = platform
+
+    col = DB['log']
+    count = col.find(query, {'_id': 0}).count()
+    logs = list(col.find(query, {'_id': 0}).limit(limit).skip(offset).sort('time', -1))
+    return JsonResponse(status=200, data={'count': count, 'logs': logs})
+
+
 def get_avatar(request):
     is_auth = check_token(request)
     if isinstance(is_auth, JsonResponse):
