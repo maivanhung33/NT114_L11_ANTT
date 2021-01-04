@@ -13,20 +13,20 @@ class FaceBook:
         if self.__url.find('https://www.facebook.com/') == 0:
             self.__type = 2
             try:
-                if self.__url.split('https://www.facebook.com/')[1] == '':
-                    return False
-                self.__page_name = self.__url.split('https://www.facebook.com/')[1].split('/')[0]
-                self.__url = 'https://www.facebook.com/' + self.__page_name
+                if self.__url.split('https://www.facebook.com/')[1] != '':
+                    self.__page_name = self.__url.split('https://www.facebook.com/')[1].split('/')[0]
+                    self.__url = 'https://www.facebook.com/' + self.__page_name
             except Exception as e:
-                return False
-        if self.__url.find('https://fb.watch/') == 0:
+                return
+            return
+        elif self.__url.find('https://fb.watch/') == 0:
             self.__type = 1
             element = self.__url.split('/')
             if len(element) < 3 or element[3] == '':
-                return False
+                return
             self.__url = 'https://fb.watch/' + element[3] + "/"
             self.__parse_url()
-            return True
+            return
         self.__type = None
 
     def __parse_url(self):
@@ -48,11 +48,14 @@ class FaceBook:
 
     def crawl(self, limit=10, cursor=None):
         if self.__type is None:
+            print('type None')
             return None
         if self.__type == 2:
+            print('type 2')
             page_id = self.__get_page_id()
             return self.__get_latest_videos(page_id, limit, cursor)
         if self.__type == 1:
+            print('type 1')
             try:
                 video_id = self.__get_video_id()
                 if video_id == '':
