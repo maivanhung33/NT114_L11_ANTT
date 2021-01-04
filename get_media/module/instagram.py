@@ -61,7 +61,7 @@ class InstaAPI:
         if self.__type == 'POST':
             post = self.__get_post(self.__shortcode)
             if post['data']['shortcode_media'] is None:
-                return {}
+                return None
             return dict(
                 has_next_page=False,
                 cursor=None,
@@ -70,7 +70,7 @@ class InstaAPI:
         if self.__type == 'PROFILE':
             user = self.__get_user_info(self.__username)
             if user == {}:
-                return {}
+                return None
             del user['graphql']['user']['edge_felix_video_timeline']
             del user['graphql']['user']['edge_owner_to_timeline_media']['edges']
             del user['graphql']['user']['edge_saved_media']
