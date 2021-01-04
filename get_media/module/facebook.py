@@ -68,6 +68,7 @@ class FaceBook:
                 raise e
                 # print('[FB] error ' + e.__str__())
                 # return {'owner': None, 'data': []}
+        return None
 
     def __get_page_id(self):
         page_html = requests.get(self.__url).text
