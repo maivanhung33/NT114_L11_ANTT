@@ -5,6 +5,7 @@ import requests
 from django.http import JsonResponse, HttpResponse
 from rest_framework.decorators import api_view
 
+from get_media.model.user import TYPE_USER
 from get_media.module import auth
 from get_media.module.database import DB
 from get_media.module.facebook import FaceBook
@@ -90,7 +91,7 @@ def get_insta_media(request):
         return JsonResponse(status=200, data=is_existing)
 
     info = insta.crawl(limit, cursor)
-    if 'data' not in info.keys():
+    if info is None:
         return JsonResponse(status=200, data=dict(owner=None, data=None))
     owner = {}
     if info['user'] is not None:
@@ -166,7 +167,7 @@ def check_token(request):
     try:
         access_token = request.headers['Authorization'].split(' ')[1]
         is_auth = auth.check_access_token(access_token)
-        if is_auth == -1 or is_auth == 0:
+        if is_auth == -1 or is_auth == 0 or is_auth.type != TYPE_USER:
             return
         return is_auth
     except:
