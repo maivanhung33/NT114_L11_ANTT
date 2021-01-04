@@ -34,9 +34,11 @@ def get_video_facebook(request):
 
     # Crawl
     response = facebook.crawl(limit, cursor)
+    if response is None:
+        return JsonResponse(status=200, data={'owner': None, 'data': None, 'hasNextPage': False, 'cursor': None})
+    response = check_added(is_auth, response, 'facebook')
     response['srcUrl'] = facebook.get_url()
     write_data(response, limit, cursor)
-    response = check_added(is_auth, response, 'facebook')
     return JsonResponse(status=200, data=response)
 
 

@@ -27,6 +27,7 @@ class FaceBook:
             self.__url = 'https://fb.watch/' + element[3] + "/"
             self.__parse_url()
             return True
+        self.__type = None
 
     def __parse_url(self):
         url = requests.get(self.__url).url
@@ -46,6 +47,8 @@ class FaceBook:
         return self.__url
 
     def crawl(self, limit=10, cursor=None):
+        if self.__type is None:
+            return None
         if self.__type == 2:
             page_id = self.__get_page_id()
             return self.__get_latest_videos(page_id, limit, cursor)
@@ -68,7 +71,6 @@ class FaceBook:
                 raise e
                 # print('[FB] error ' + e.__str__())
                 # return {'owner': None, 'data': []}
-        return None
 
     def __get_page_id(self):
         page_html = requests.get(self.__url).text
