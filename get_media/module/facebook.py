@@ -48,14 +48,11 @@ class FaceBook:
 
     def crawl(self, limit=10, cursor=None):
         if self.__type is None:
-            print('type None')
             return None
         if self.__type == 2:
-            print('type 2')
             page_id = self.__get_page_id()
             return self.__get_latest_videos(page_id, limit, cursor)
         if self.__type == 1:
-            print('type 1')
             try:
                 video_id = self.__get_video_id()
                 if video_id == '':
