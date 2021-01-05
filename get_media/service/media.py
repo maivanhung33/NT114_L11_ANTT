@@ -27,7 +27,7 @@ def get_video_facebook(request):
     limit = data['limit'] if 'limit' in data.keys() else 10
     cursor = data['cursor'] if 'cursor' in data.keys() else None
 
-    request_type = data['requestType'] if 'requestType' in data.keys() else TYPE_HIGHLIGHT
+    request_type = data['requestType'] if 'requestType' in data.keys() else TYPE_CRAWL
     if request_type == TYPE_CRAWL:
         write_log({'url': data['url'], 'platform': 'facebook'}, 'crawl', is_auth)
     # Check existence
@@ -89,7 +89,7 @@ def get_insta_media(request):
     limit = data['limit'] if 'limit' in data.keys() else 50
     cursor = data['cursor'] if 'cursor' in data.keys() else ''
 
-    request_type = data['requestType'] if 'requestType' in data.keys() else TYPE_HIGHLIGHT
+    request_type = data['requestType'] if 'requestType' in data.keys() else TYPE_CRAWL
     if request_type == TYPE_CRAWL:
         write_log({'url': data['url'], 'platform': 'instagram'}, 'crawl', is_auth)
 
