@@ -13,6 +13,9 @@ from get_media.module.instagram import InstaAPI
 from get_media.module.tiktok import TikTok
 from get_media.service.log import write_log
 
+TYPE_HIGHLIGHT = 'highlight'
+TYPE_CRAWL = 'crawl'
+
 
 @api_view(['POST'])
 def get_video_facebook(request):
@@ -24,8 +27,10 @@ def get_video_facebook(request):
     limit = data['limit'] if 'limit' in data.keys() else 10
     cursor = data['cursor'] if 'cursor' in data.keys() else None
 
+    request_type = data['requestType'] if 'requestType' in data.keys() else TYPE_HIGHLIGHT
+    if request_type == TYPE_CRAWL:
+        write_log({'url': data['url'], 'platform': 'facebook'}, 'crawl', is_auth)
     # Check existence
-    write_log({'url': data['url'], 'platform': 'facebook'}, 'crawl', is_auth)
     facebook = FaceBook(data['url'])
     is_existing = find_existence(facebook.get_url(), limit, cursor)
     if is_existing is not None:
@@ -47,7 +52,6 @@ def get_video_tiktok(request):
     # Validate request
     if 'url' not in request.GET.keys():
         return JsonResponse(data={'message': 'URL_REQUIRED'}, status=400)
-
     # Crawl
     try:
         tiktok = TikTok(request.GET['url'])
@@ -85,7 +89,10 @@ def get_insta_media(request):
     limit = data['limit'] if 'limit' in data.keys() else 50
     cursor = data['cursor'] if 'cursor' in data.keys() else ''
 
-    write_log({'url': data['url'], 'platform': 'instagram'}, 'crawl', is_auth)
+    request_type = data['requestType'] if 'requestType' in data.keys() else TYPE_HIGHLIGHT
+    if request_type == TYPE_CRAWL:
+        write_log({'url': data['url'], 'platform': 'instagram'}, 'crawl', is_auth)
+
     insta = InstaAPI(data['url'])
     is_existing = find_existence(insta.get_url(), limit, cursor)
     if is_existing is not None:
