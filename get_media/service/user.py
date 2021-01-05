@@ -472,6 +472,7 @@ def add_to_collection(request, id):
     try:
         col = DB['collection_item']
         update_data = dict(
+            collection_name=collection['name'],
             collection_id=id,
             owner_phone=is_auth.phone,
             id=request_data['id'],
