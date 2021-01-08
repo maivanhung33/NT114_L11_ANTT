@@ -192,29 +192,32 @@ def get_user_collection(is_auth):
 
 def check_added(is_auth, response, platform):
     col = DB['collection_item']
+    user_items = list(col.find({'owner_phone': is_auth.phone}, {'collection_id': 1, 'id': 1}))
     if platform == 'tiktok':
         if is_auth is None:
             response['isAdded'] = False
             response['collectionId'] = None
             return response
         response['isAdded'] = False
-        response['collectionId'] = None
-        col_item = col.find({'owner_phone': is_auth.phone, 'id': response['id']}, {'collection_id': 1})
-        if col_item:
+        response['collectionId'] = []
+        for item in user_items:
+            if item['id'] != response['id']:
+                continue
             response['isAdded'] = True
-            response['collectionId'] = [i['collection_id'] for i in col_item]
+            response['collectionId'].append(item['collection_id'])
         return response
     else:
         if is_auth is None:
-            for item in response['data']:
-                item['isAdded'] = False
-                item['collectionId'] = None
+            for response_item in response['data']:
+                response_item['isAdded'] = False
+                response_item['collectionId'] = None
             return response
-        for item in response['data']:
-            item['isAdded'] = False
-            item['collectionId'] = None
-            col_item = list(col.find({'owner_phone': is_auth.phone, 'id': item['id']}, {'collection_id': 1}))
-            if col_item:
-                item['isAdded'] = True
-                item['collectionId'] = [i['collection_id'] for i in col_item]
+        for response_item in response['data']:
+            response_item['isAdded'] = False
+            response_item['collectionId'] = []
+            for user_item in user_items:
+                if user_item['id'] != response_item['id']:
+                    continue
+                response_item['isAdded'] = True
+                response_item['collectionId'].append(user_item['collection_id'])
         return response
